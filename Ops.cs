@@ -21,7 +21,7 @@ namespace CSASM.Core{
 
 		private static void CheckVerbose(string instruction, bool beginningOfInstr){
 			if(Sandbox.verbose){
-				Console.WriteLine($"[CSASM] Stack at {(beginningOfInstr ? "beginning" : "end")} of instruction \"{instruction}\":" +
+				Sandbox.verboseWriter.WriteLine($"[CSASM] Stack at {(beginningOfInstr ? "beginning" : "end")} of instruction \"{instruction}\":" +
 					$"\n   {stack}");
 			}
 		}
@@ -126,6 +126,8 @@ namespace CSASM.Core{
 			return bytes;
 		}
 
+		public static void func_cls() => Console.Clear();
+
 		public static void func_comp(){
 			CheckVerbose("comp", true);
 
@@ -187,6 +189,19 @@ namespace CSASM.Core{
 				throw new StackException("comp.gt", obj, obj2);
 		}
 
+		public static void func_comp_gte(){
+			CheckVerbose("comp.gt", true);
+
+			object obj2 = stack.Pop();
+			object obj = stack.Pop();
+
+			if(obj is IPrimitive ip && obj2 is IPrimitive ip2){
+				if(ip.CompareTo(ip2) >= 0)
+					Comparison = true;
+			}else
+				throw new StackException("comp.gte", obj, obj2);
+		}
+
 		public static void func_comp_lt(){
 			CheckVerbose("comp.lt", true);
 
@@ -199,6 +214,21 @@ namespace CSASM.Core{
 			}else
 				throw new StackException("comp.lt", obj, obj2);
 		}
+
+		public static void func_comp_lte(){
+			CheckVerbose("comp.lt", true);
+
+			object obj2 = stack.Pop();
+			object obj = stack.Pop();
+
+			if(obj is IPrimitive ip && obj2 is IPrimitive ip2){
+				if(ip.CompareTo(ip2) <= 0)
+					Comparison = true;
+			}else
+				throw new StackException("comp.lte", obj, obj2);
+		}
+
+		public static void func_conrc() => Console.ResetColor();
 
 		public static void func_conv(string type){
 			CheckVerbose("conv", true);
@@ -294,12 +324,30 @@ namespace CSASM.Core{
 				stack.Push(obj);
 		}
 
+		public static void func_in(string prompt){
+			Console.Write(prompt);
+
+			stack.Push(Console.ReadLine());
+		}
+
 		public static void func_inc(){
 			object obj = stack.Pop();
 			if(obj is IPrimitive ip)
 				stack.Push(ip.Increment());
 			else
 				throw new StackException("inc", obj);
+		}
+
+		public static void func_ink(string prompt){
+			Console.Write(prompt);
+
+			stack.Push(Console.ReadKey().KeyChar);
+		}
+
+		public static void func_inki(string prompt){
+			Console.Write(prompt);
+
+			stack.Push(Console.ReadKey(intercept: true).KeyChar);
 		}
 
 		public static void func_interp(string interp){
@@ -327,6 +375,17 @@ namespace CSASM.Core{
 			Type checkType = Utility.GetCsharpType(type);
 
 			if(_reg_a.GetType() == checkType)
+				Comparison = true;
+		}
+
+		public static void func_isarr(string type){
+			CheckVerbose("isarr", true);
+
+			object arr = stack.Pop();
+			Type arrType = arr.GetType();
+			Type checkType = Utility.GetCsharpType(type);
+
+			if(arrType.IsArray && (checkType == typeof(object) || arrType.GetElementType() == checkType))
 				Comparison = true;
 		}
 

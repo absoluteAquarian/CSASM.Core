@@ -76,7 +76,7 @@ namespace CSASM.Core{
 
 		public static bool BrResult(){
 			if(Sandbox.verbose){
-				Console.WriteLine($"[CSASM] Stack at beginning of utility \"BrResult\":" +
+				Sandbox.verboseWriter.WriteLine($"[CSASM] Stack at beginning of utility \"BrResult\":" +
 					$"\n   {Ops.stack}");
 			}
 
@@ -118,12 +118,12 @@ namespace CSASM.Core{
 			if(u is ulong v){
 				if(u2 is ulong v2){
 					if(Sandbox.verbose)
-						Console.WriteLine($"[CSASM] AreEqual: unsigned integer ({v}) vs unsigned integer ({v2})");
+						Sandbox.verboseWriter.WriteLine($"[CSASM] AreEqual: unsigned integer ({v}) vs unsigned integer ({v2})");
 
 					return v == v2;
 				}else if(l2 is long v3){
 					if(Sandbox.verbose)
-						Console.WriteLine($"[CSASM] AreEqual: unsigned integer ({v}) vs signed integer ({v3})");
+						Sandbox.verboseWriter.WriteLine($"[CSASM] AreEqual: unsigned integer ({v}) vs signed integer ({v3})");
 
 					return (long)v >= 0 ? (long)v == v3 : false;  //Make comparisons of ulongs that wrap to the negatives always false (if the other one is long)
 				}
@@ -133,12 +133,12 @@ namespace CSASM.Core{
 			if(l is long v4){
 				if(l2 is long v2){
 					if(Sandbox.verbose)
-						Console.WriteLine($"[CSASM] AreEqual: signed integer ({v4}) vs signed integer ({v2})");
+						Sandbox.verboseWriter.WriteLine($"[CSASM] AreEqual: signed integer ({v4}) vs signed integer ({v2})");
 
 					return v4 == v2;
 				}else if(u2 is ulong v3){
 					if(Sandbox.verbose)
-						Console.WriteLine($"[CSASM] AreEqual: signed integer ({v4}) vs unsigned integer ({v3})");
+						Sandbox.verboseWriter.WriteLine($"[CSASM] AreEqual: signed integer ({v4}) vs unsigned integer ({v3})");
 
 					return (long)v3 >= 0 ? v4 == (long)v3 : false;  //Make comparisons of ulongs that wrap to the negatives always false (if the other one is long)
 				}

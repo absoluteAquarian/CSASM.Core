@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -6,6 +7,8 @@ namespace CSASM.Core{
 	public static class Sandbox{
 		public static bool verbose;
 		public static bool reportStackUsage;
+
+		public static StreamWriter verboseWriter;
 
 		public static int Main(MethodInfo main, int stackSize, string[] args){
 			Ops.stack = new CSASMStack(stackSize);
@@ -19,8 +22,15 @@ namespace CSASM.Core{
 				}
 			}
 
+			//Create the verbose output
+			if(verbose)
+				verboseWriter = new StreamWriter(File.Open("verbose.txt", FileMode.Create));
+
 			try{
 				main.Invoke(null, null);
+
+				if(verbose)
+					verboseWriter.Close();
 				return 0;
 			}catch(AccumulatorException aex){
 				Console.WriteLine($"AccumulatorException thrown: {aex.Message}");
@@ -37,6 +47,9 @@ namespace CSASM.Core{
 				message = message.Substring(message.IndexOf(":") + 2);
 				Console.WriteLine($"{ex.GetType().Name} thrown in compiled code:\n   {message}");
 			}
+
+			if(verbose)
+				verboseWriter.Close();
 			return -1;
 		}
 	}

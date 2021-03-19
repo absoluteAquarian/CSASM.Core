@@ -29,7 +29,7 @@ namespace CSASM.Core{
 			head++;
 
 			if(Sandbox.reportStackUsage)
-				Console.WriteLine($"[CSASM] Object pushed: {(obj is Array a ? FormatArray(a) : obj?.ToString() ?? "null")}");
+				Sandbox.verboseWriter.WriteLine($"[CSASM] Object pushed: {FormatObject(obj)}");
 		}
 
 		public object Pop(){
@@ -40,26 +40,19 @@ namespace CSASM.Core{
 			head--;
 
 			if(Sandbox.reportStackUsage)
-				Console.WriteLine($"[CSASM] Object popped: {(obj is Array a ? FormatArray(a) : obj?.ToString() ?? "null")}");
+				Sandbox.verboseWriter.WriteLine($"[CSASM] Object popped: {FormatObject(obj)}");
 
 			return obj;
 		}
 
 		public object Peek() => head == 0 ? throw new StackException("Stack does not contain any values") : stack[head - 1];
 
-		public static string FormatArrayElement(object elem)
-			=> elem is string s
-				? $"\"{s}\""
-				: (elem is char c
-					? $"'{c}'"
-					: elem?.ToString() ?? "null");
-
 		public static string FormatArray(Array a){
 			if(a.Length == 0)
 				return "[ <empty> ]";
 
 			if(a.Length == 1)
-				return $"[ {FormatArrayElement(a.GetValue(0))} ]";
+				return $"[ {FormatObject(a.GetValue(0))} ]";
 
 			//Arrays of arrays won't be supported for the time being
 			string ret = "[ ";
@@ -75,7 +68,7 @@ namespace CSASM.Core{
 				if(i > 0)
 					ret += ", ";
 
-				ret += FormatArrayElement(elem);
+				ret += FormatObject(elem);
 			}
 			ret += " ]";
 
@@ -85,14 +78,15 @@ namespace CSASM.Core{
 		public override string ToString()
 			=> head == 0
 				? "[ <empty> ]"
-				: "[ " + string.Join(", ", stack.Where((o, i) => i < head).Select(o =>
-					o is string s
-						? $"\"{s}\""
-						: (o is char c
-							? $"'{c}'"
-							: (o is Array a
-								? FormatArray(a)
-								: (o?.ToString() ?? "null")))))
-					+ " ]";
+				: "[ " + string.Join(", ", stack.Where((o, i) => i < head).Select(o => FormatObject(o))) + " ]";
+
+		private static string FormatObject(object o)
+			=> o is string s
+				? $"\"{s}\""
+				: (o is char c
+					? $"'{c}'"
+					: (o is Array a
+						? FormatArray(a)
+						: (o?.ToString() ?? "null")));
 	}
 }
