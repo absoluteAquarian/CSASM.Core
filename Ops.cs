@@ -140,7 +140,7 @@ namespace CSASM.Core{
 			object obj = stack.Pop();
 
 			if(Sandbox.verbose)
-				Console.WriteLine($"[CSASM] \"comp\" instruction had types \"{(obj == null ? "null" : Utility.GetCSASMType(obj.GetType()))}\"" +
+				Sandbox.verboseWriter.WriteLine($"[CSASM] \"comp\" instruction had types \"{(obj == null ? "null" : Utility.GetCSASMType(obj.GetType()))}\"" +
 					$" and \"{(obj2 == null ? "null" : Utility.GetCSASMType(obj2.GetType()))}\"");
 
 			if(obj == null || obj2 == null){
@@ -530,7 +530,7 @@ namespace CSASM.Core{
 		public static void func_ldelem(int index){
 			CheckVerbose("ldelem", true);
 			if(Sandbox.verbose)
-				Console.WriteLine($"[CSASM] Index passed into instruction \"ldelem\": {index}");
+				Sandbox.verboseWriter.WriteLine($"[CSASM] Index passed into instruction \"ldelem\": {index}");
 
 			object arr = stack.Pop();
 
@@ -690,7 +690,7 @@ namespace CSASM.Core{
 		public static void func_stelem(int index){
 			CheckVerbose("stelem", true);
 			if(Sandbox.verbose)
-				Console.WriteLine($"[CSASM] Index passed into instruction \"stelem\": {index}");
+				Sandbox.verboseWriter.WriteLine($"[CSASM] Index passed into instruction \"stelem\": {index}");
 
 			object obj = stack.Pop();
 			object arr = stack.Pop();
