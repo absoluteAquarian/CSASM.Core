@@ -46,6 +46,12 @@
 		object IPrimitive.Negate()
 			=> new FloatPrimitive(-value);
 
+		object IPrimitive.Remainder(IPrimitive other){
+			if(other is FloatPrimitive p)
+				return new FloatPrimitive(value % p.value);
+			throw new ArithmeticException("remainder", this, other);
+		}
+
 		bool IPrimitive.SameType(IPrimitive other)
 			=> other is FloatPrimitive;
 
@@ -102,6 +108,12 @@
 
 		object IPrimitive.Negate()
 			=> new DoublePrimitive(-value);
+
+		object IPrimitive.Remainder(IPrimitive other){
+			if(other is DoublePrimitive p)
+				return new DoublePrimitive(value % p.value);
+			throw new ArithmeticException("remainder", this, other);
+		}
 
 		bool IPrimitive.SameType(IPrimitive other)
 			=> other is DoublePrimitive;

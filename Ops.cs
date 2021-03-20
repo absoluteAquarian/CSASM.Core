@@ -19,6 +19,11 @@ namespace CSASM.Core{
 			set => flags = (byte)(value ? flags | 0x02 : flags & ~0x02);
 		}
 
+		public static bool Conversion{
+			get => (flags & 0x04) != 0;
+			set => flags = (byte)(value ? flags | 0x04 : flags & ~0x04);
+		}
+
 		private static void CheckVerbose(string instruction, bool beginningOfInstr){
 			if(Sandbox.verbose){
 				Sandbox.verboseWriter.WriteLine($"[CSASM] Stack at {(beginningOfInstr ? "beginning" : "end")} of instruction \"{instruction}\":" +
@@ -234,6 +239,11 @@ namespace CSASM.Core{
 			CheckVerbose("conv", true);
 
 			object obj = stack.Pop();
+			if(Utility.GetCSASMType(obj.GetType()) == type){
+				stack.Push(obj);
+				return;
+			}
+
 			if(type == "char"){
 				//Only conversions from i32 -> char are allowed for the time being
 				if(obj is IntPrimitive intprim)
@@ -256,8 +266,7 @@ namespace CSASM.Core{
 					throw new StackException("conv", obj);
 			}else if(type.StartsWith("~arr:") && obj.GetType().IsArray)
 				throw new StackException("Array instances cannot be converted using the \"conv\" operator");
-			else if(obj is IPrimitiveInteger){
-				IPrimitive ip = obj as IPrimitive;
+			else if(obj is IPrimitive ip){
 				object value = ip.Value;
 				try{
 					Type newType = Utility.GetCsharpType(type);
@@ -269,6 +278,83 @@ namespace CSASM.Core{
 					throw tex;
 				}catch{
 					throw new StackException("conv", obj);
+				}
+			}else if(obj is string s){
+				if(type == "char")
+					throw new StackException("conv", obj);
+				else{
+					switch(type){
+						case "i8":
+							if(sbyte.TryParse(s, out sbyte sb)){
+								Conversion = true;
+								stack.Push(new SbytePrimitive(sb));
+							}else
+								stack.Push(new SbytePrimitive(0));
+							break;
+						case "i16":
+							if(short.TryParse(s, out short sh)){
+								Conversion = true;
+								stack.Push(new ShortPrimitive(sh));
+							}else
+								stack.Push(new ShortPrimitive(0));
+							break;
+						case "i32":
+							if(int.TryParse(s, out int i)){
+								Conversion = true;
+								stack.Push(new IntPrimitive(i));
+							}else
+								stack.Push(new IntPrimitive(0));
+							break;
+						case "i64":
+							if(long.TryParse(s, out long l)){
+								Conversion = true;
+								stack.Push(new LongPrimitive(l));
+							}else
+								stack.Push(new LongPrimitive(0));
+							break;
+						case "u8":
+							if(byte.TryParse(s, out byte b)){
+								Conversion = true;
+								stack.Push(new BytePrimitive(b));
+							}else
+								stack.Push(new BytePrimitive(0));
+							break;
+						case "u16":
+							if(ushort.TryParse(s, out ushort us)){
+								Conversion = true;
+								stack.Push(new UshortPrimitive(us));
+							}else
+								stack.Push(new UshortPrimitive(0));
+							break;
+						case "u32":
+							if(uint.TryParse(s, out uint u)){
+								Conversion = true;
+								stack.Push(new UintPrimitive(u));
+							}else
+								stack.Push(new UintPrimitive(0));
+							break;
+						case "u64":
+							if(ulong.TryParse(s, out ulong ul)){
+								Conversion = true;
+								stack.Push(new UlongPrimitive(ul));
+							}else
+								stack.Push(new UlongPrimitive(0));
+							break;
+						case "f32":
+							if(float.TryParse(s, out float f)){
+								Conversion = true;
+								stack.Push(new FloatPrimitive(f));
+							}else
+								stack.Push(new FloatPrimitive(0));
+							break;
+						case "f64":
+							if(double.TryParse(s, out double d)){
+								Conversion = true;
+								stack.Push(new DoublePrimitive(d));
+							}else
+								stack.Push(new DoublePrimitive(0));
+							break;
+					}
 				}
 			}
 
@@ -322,6 +408,58 @@ namespace CSASM.Core{
 				stack.Push(a.Clone());
 			else
 				stack.Push(obj);
+		}
+
+		public static void func_extern(string func){
+			object obj, obj2;
+			//Why
+			IPrimitive ip, ip2;
+			switch(func){
+				case "Math.Sqrt":
+					obj = stack.Pop();
+					if((ip = obj as IPrimitive) != null){
+						IPrimitive arg = Utility.CreatePrimitive(typeof(DoublePrimitive), ip.Value);
+						stack.Push(new DoublePrimitive(Math.Sqrt((double)arg.Value)));
+					}else
+						throw new StackException("extern", obj);
+					break;
+				case "Math.Sin":
+					obj = stack.Pop();
+					if((ip = obj as IPrimitive) != null){
+						IPrimitive arg = Utility.CreatePrimitive(typeof(DoublePrimitive), ip.Value);
+						stack.Push(new DoublePrimitive(Math.Sin((double)arg.Value)));
+					}else
+						throw new StackException("extern", obj);
+					break;
+				case "Math.Cos":
+					obj = stack.Pop();
+					if((ip = obj as IPrimitive) != null){
+						IPrimitive arg = Utility.CreatePrimitive(typeof(DoublePrimitive), ip.Value);
+						stack.Push(new DoublePrimitive(Math.Cos((double)arg.Value)));
+					}else
+						throw new StackException("extern", obj);
+					break;
+				case "Math.Tan":
+					obj = stack.Pop();
+					if((ip = obj as IPrimitive) != null){
+						IPrimitive arg = Utility.CreatePrimitive(typeof(DoublePrimitive), ip.Value);
+						stack.Push(new DoublePrimitive(Math.Tan((double)arg.Value)));
+					}else
+						throw new StackException("extern", obj);
+					break;
+				case "Math.Atan2":
+					obj2 = stack.Pop();
+					obj = stack.Pop();
+					if((ip = obj as IPrimitive) != null && (ip2 = obj2 as IPrimitive) != null){
+						IPrimitive arg = Utility.CreatePrimitive(typeof(DoublePrimitive), ip.Value);
+						IPrimitive arg2 = Utility.CreatePrimitive(typeof(DoublePrimitive), ip2.Value);
+						stack.Push(new DoublePrimitive(Math.Atan2((double)arg.Value, (double)arg2.Value)));
+					}else
+						throw new StackException("extern", obj);
+					break;
+				default:
+					throw new ArithmeticException($"Argument \"{func}\" did not refer to an implemented function redirect");
+			}
 		}
 
 		public static void func_in(string prompt){
@@ -513,6 +651,18 @@ namespace CSASM.Core{
 				Console.WriteLine(CSASMStack.FormatArray(a));
 			else
 				Console.WriteLine(obj?.ToString() ?? "null");
+		}
+
+		public static void func_rem(){
+			CheckVerbose("rem", true);
+			
+			object second = stack.Pop();
+			object first = stack.Pop();
+
+			if(first is IPrimitive ip && second is IPrimitive ip2)
+				stack.Push(ip.Remainder(ip2));
+			else
+				throw new StackException("rem", first, second);
 		}
 
 		public static void func_rol(){

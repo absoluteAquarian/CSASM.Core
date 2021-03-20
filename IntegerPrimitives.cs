@@ -71,6 +71,12 @@
 			return ret;
 		}
 
+		object IPrimitive.Remainder(IPrimitive other){
+			if(other is IntPrimitive p)
+				return new IntPrimitive(value % p.value);
+			throw new ArithmeticException("remainder", this, other);
+		}
+
 		bool IPrimitive.SameType(IPrimitive other)
 			=> other is IntPrimitive;
 
@@ -150,6 +156,12 @@
 			var ret = new ShortPrimitive((value >> 1) | (Utility.GetCarry(flags) << 15));
 			Utility.SetCarry(ref flags, (value & 1) == 1);
 			return ret;
+		}
+
+		object IPrimitive.Remainder(IPrimitive other){
+			if(other is ShortPrimitive p)
+				return new ShortPrimitive(value % p.value);
+			throw new ArithmeticException("remainder", this, other);
 		}
 
 		bool IPrimitive.SameType(IPrimitive other)
@@ -233,6 +245,12 @@
 			return ret;
 		}
 
+		object IPrimitive.Remainder(IPrimitive other){
+			if(other is SbytePrimitive p)
+				return new SbytePrimitive(value % p.value);
+			throw new ArithmeticException("remainder", this, other);
+		}
+
 		bool IPrimitive.SameType(IPrimitive other)
 			=> other is SbytePrimitive;
 
@@ -312,6 +330,12 @@
 				Utility.SetCarry(ref flags, (value & 1) == 1);
 				return ret;
 			}
+		}
+
+		object IPrimitive.Remainder(IPrimitive other){
+			if(other is LongPrimitive p)
+				return new LongPrimitive(value % p.value);
+			throw new ArithmeticException("remainder", this, other);
 		}
 
 		bool IPrimitive.SameType(IPrimitive other)

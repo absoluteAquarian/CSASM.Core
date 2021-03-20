@@ -18,5 +18,7 @@ namespace CSASM.Core{
 		object Decrement();
 
 		string CSASMType();
+
+		object Remainder(IPrimitive other);
 	}
 }

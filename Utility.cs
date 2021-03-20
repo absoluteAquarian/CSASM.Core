@@ -74,6 +74,9 @@ namespace CSASM.Core{
 		public static byte GetComparison(byte flags) => (byte)(flags & 0x02);
 		public static byte SetComparison(ref byte flags, bool set) => flags = (byte)(set ? flags | 0x02 : flags & ~0x02);
 
+		public static byte GetConversion(byte flags) => (byte)(flags & 0x04);
+		public static byte SetConversion(ref byte flags, bool set) => flags = (byte)(set ? flags | 0x04 : flags & ~0x04);
+
 		public static bool BrResult(){
 			if(Sandbox.verbose){
 				Sandbox.verboseWriter.WriteLine($"[CSASM] Stack at beginning of utility \"BrResult\":" +
