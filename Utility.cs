@@ -84,16 +84,23 @@ namespace CSASM.Core{
 			}
 
 			object obj = Ops.stack.Pop();
+			bool ret;
 
 			if(obj is char c)
-				return c != '\0';
+				ret = c != '\0';
 			else if(obj is IPrimitive ip)
-				return AreEqual(ip, !(ip is IPrimitiveInteger) ? (IPrimitive)new FloatPrimitive(0) : (IPrimitive)new IntPrimitive(0));
+				ret = !AreEqual(ip, !(ip is IPrimitiveInteger) ? (IPrimitive)new FloatPrimitive(0) : (IPrimitive)new IntPrimitive(0));
 			else if(obj is bool b)
-				return b;
+				ret = b;
+			else{
+				//Strings, arrays and objects will end up here
+				ret = obj != null;
+			}
 
-			//Strings, arrays and objects will end up here
-			return obj != null;
+			if(Sandbox.verbose)
+				Sandbox.verboseWriter.WriteLine($"[CSASM] Utility \"BrResult\" returned: {ret}");
+
+			return ret;
 		}
 
 		public static bool AreEqual(IPrimitive ip, IPrimitive ip2){
