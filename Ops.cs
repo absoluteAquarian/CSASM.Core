@@ -625,7 +625,7 @@ namespace CSASM.Core{
 			if(obj is Array a)
 				stack.Push(new IntPrimitive(a.Length));
 			else if(obj is string s)
-				stack.Push(s.Length);
+				stack.Push(new IntPrimitive(s.Length));
 			else
 				throw new StackException("len", obj);
 		}

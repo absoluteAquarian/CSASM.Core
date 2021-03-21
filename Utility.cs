@@ -27,6 +27,7 @@ namespace CSASM.Core{
 				"Char" => "char",
 				"String" => "str",
 				"Object" => "obj",
+				"Indexer" => "^<u32>",
 				null => throw new ArgumentNullException("type.Name"),
 				_ when type.IsArray => $"~arr:{GetCSASMType(type.GetElementType())}",
 				_ => throw new Exception($"Type \"{type.Name}\" does not correspond to a valid CSASM type")
@@ -49,6 +50,7 @@ namespace CSASM.Core{
 				"obj" => typeof(object),
 				null => throw new ArgumentNullException("asmType"),
 				_ when asmType.StartsWith("~arr:") => Array.CreateInstance(GetCsharpType(asmType.Substring("~arr:".Length)), 0).GetType(),
+				_ when asmType.StartsWith("^") && uint.TryParse(asmType.Substring(1), out _) => typeof(Indexer),
 				_ => throw new ThrowException($"Type \"{asmType}\" did not correlate to a valid CSASM type")
 			};
 
