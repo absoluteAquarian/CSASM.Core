@@ -83,6 +83,27 @@
 				return new UintPrimitive(value - p.value);
 			throw new ArithmeticException("subtraction", this, other);
 		}
+
+		object IPrimitiveInteger.BitwiseAnd(IPrimitive other){
+			if(other is UintPrimitive p)
+				return new UintPrimitive(value & p.value);
+			throw new ArithmeticException("and", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseOr(IPrimitive other){
+			if(other is UintPrimitive p)
+				return new UintPrimitive(value | p.value);
+			throw new ArithmeticException("or", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseXor(IPrimitive other){
+			if(other is UintPrimitive p)
+				return new UintPrimitive(value ^ p.value);
+			throw new ArithmeticException("xor", this, other);
+		}
+
+		object IPrimitiveInteger.GetBit(byte bit)
+			=> bit < 32 ? value & (1 << bit) : 0;
 	}
 
 	public struct UshortPrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger{
@@ -170,6 +191,27 @@
 				return new UshortPrimitive(value - p.value);
 			throw new ArithmeticException("subtraction", this, other);
 		}
+
+		object IPrimitiveInteger.BitwiseAnd(IPrimitive other){
+			if(other is UshortPrimitive p)
+				return new UshortPrimitive(value & p.value);
+			throw new ArithmeticException("and", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseOr(IPrimitive other){
+			if(other is UshortPrimitive p)
+				return new UshortPrimitive(value | p.value);
+			throw new ArithmeticException("or", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseXor(IPrimitive other){
+			if(other is UshortPrimitive p)
+				return new UshortPrimitive(value ^ p.value);
+			throw new ArithmeticException("xor", this, other);
+		}
+
+		object IPrimitiveInteger.GetBit(byte bit)
+			=> bit < 16 ? value & (1 << bit) : 0;
 	}
 
 	public struct BytePrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger{
@@ -257,6 +299,27 @@
 				return new BytePrimitive(value - p.value);
 			throw new ArithmeticException("subtraction", this, other);
 		}
+
+		object IPrimitiveInteger.BitwiseAnd(IPrimitive other){
+			if(other is BytePrimitive p)
+				return new BytePrimitive(value & p.value);
+			throw new ArithmeticException("and", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseOr(IPrimitive other){
+			if(other is BytePrimitive p)
+				return new BytePrimitive(value | p.value);
+			throw new ArithmeticException("or", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseXor(IPrimitive other){
+			if(other is BytePrimitive p)
+				return new BytePrimitive(value ^ p.value);
+			throw new ArithmeticException("xor", this, other);
+		}
+
+		object IPrimitiveInteger.GetBit(byte bit)
+			=> bit < 8 ? value & (1 << bit) : 0;
 	}
 
 	public struct UlongPrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger{
@@ -346,5 +409,26 @@
 				return new UlongPrimitive(value - p.value);
 			throw new ArithmeticException("subtraction", this, other);
 		}
+
+		object IPrimitiveInteger.BitwiseAnd(IPrimitive other){
+			if(other is UlongPrimitive p)
+				return new UlongPrimitive(value & p.value);
+			throw new ArithmeticException("and", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseOr(IPrimitive other){
+			if(other is UlongPrimitive p)
+				return new UlongPrimitive(value | p.value);
+			throw new ArithmeticException("or", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseXor(IPrimitive other){
+			if(other is UlongPrimitive p)
+				return new UlongPrimitive(value ^ p.value);
+			throw new ArithmeticException("xor", this, other);
+		}
+
+		object IPrimitiveInteger.GetBit(byte bit)
+			=> bit < 64 ? value & (1uL << bit) : 0;
 	}
 }

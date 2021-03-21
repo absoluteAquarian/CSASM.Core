@@ -80,7 +80,7 @@ namespace CSASM.Core{
 				? "[ <empty> ]"
 				: "[ " + string.Join(", ", stack.Where((o, i) => i < head).Select(o => FormatObject(o))) + " ]";
 
-		private static string FormatObject(object o)
+		public static string FormatObject(object o)
 			=> o is string s
 				? $"\"{s}\""
 				: (o is char c

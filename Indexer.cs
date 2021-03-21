@@ -8,11 +8,13 @@ namespace CSASM.Core{
 			this.offset = offset;
 		}
 
-		public int GetIndex(object array){
-			if(array is Array a)
+		public int GetIndex(object obj){
+			if(obj is Array a)
 				return a.Length - (int)offset;
+			else if(obj is string s)
+				return s.Length - (int)offset;
 
-			throw new ArgumentException("Object did not refer to an array instance.");
+			throw new ArgumentException("Object did not refer to an array or string instance.");
 		}
 	}
 }

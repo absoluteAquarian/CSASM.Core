@@ -85,6 +85,27 @@
 				return new IntPrimitive(value - p.value);
 			throw new ArithmeticException("subtraction", this, other);
 		}
+
+		object IPrimitiveInteger.BitwiseAnd(IPrimitive other){
+			if(other is IntPrimitive p)
+				return new IntPrimitive(value & p.value);
+			throw new ArithmeticException("and", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseOr(IPrimitive other){
+			if(other is IntPrimitive p)
+				return new IntPrimitive(value | p.value);
+			throw new ArithmeticException("or", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseXor(IPrimitive other){
+			if(other is IntPrimitive p)
+				return new IntPrimitive(value ^ p.value);
+			throw new ArithmeticException("xor", this, other);
+		}
+
+		object IPrimitiveInteger.GetBit(byte bit)
+			=> bit < 32 ? value & (1 << bit) : 0;
 	}
 
 	public struct ShortPrimitive : IPrimitive, IPrimitiveInteger{
@@ -172,6 +193,27 @@
 				return new ShortPrimitive(value - p.value);
 			throw new ArithmeticException("subtraction", this, other);
 		}
+
+		object IPrimitiveInteger.BitwiseAnd(IPrimitive other){
+			if(other is ShortPrimitive p)
+				return new ShortPrimitive(value & p.value);
+			throw new ArithmeticException("and", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseOr(IPrimitive other){
+			if(other is ShortPrimitive p)
+				return new ShortPrimitive(value | p.value);
+			throw new ArithmeticException("or", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseXor(IPrimitive other){
+			if(other is ShortPrimitive p)
+				return new ShortPrimitive(value ^ p.value);
+			throw new ArithmeticException("xor", this, other);
+		}
+
+		object IPrimitiveInteger.GetBit(byte bit)
+			=> bit < 16 ? value & (1 << bit) : 0;
 	}
 
 	public struct SbytePrimitive : IPrimitive, IPrimitiveInteger{
@@ -259,6 +301,27 @@
 				return new SbytePrimitive(value - p.value);
 			throw new ArithmeticException("subtraction", this, other);
 		}
+
+		object IPrimitiveInteger.BitwiseAnd(IPrimitive other){
+			if(other is SbytePrimitive p)
+				return new SbytePrimitive(value & p.value);
+			throw new ArithmeticException("and", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseOr(IPrimitive other){
+			if(other is SbytePrimitive p)
+				return new SbytePrimitive(value | p.value);
+			throw new ArithmeticException("or", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseXor(IPrimitive other){
+			if(other is SbytePrimitive p)
+				return new SbytePrimitive(value ^ p.value);
+			throw new ArithmeticException("xor", this, other);
+		}
+
+		object IPrimitiveInteger.GetBit(byte bit)
+			=> bit < 8 ? value & (1 << bit) : 0;
 	}
 
 	public struct LongPrimitive : IPrimitive, IPrimitiveInteger{
@@ -346,5 +409,26 @@
 				return new LongPrimitive(value - p.value);
 			throw new ArithmeticException("subtraction", this, other);
 		}
+
+		object IPrimitiveInteger.BitwiseAnd(IPrimitive other){
+			if(other is LongPrimitive p)
+				return new LongPrimitive(value & p.value);
+			throw new ArithmeticException("and", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseOr(IPrimitive other){
+			if(other is LongPrimitive p)
+				return new LongPrimitive(value | p.value);
+			throw new ArithmeticException("or", this, other);
+		}
+
+		object IPrimitiveInteger.BitwiseXor(IPrimitive other){
+			if(other is LongPrimitive p)
+				return new LongPrimitive(value ^ p.value);
+			throw new ArithmeticException("xor", this, other);
+		}
+
+		object IPrimitiveInteger.GetBit(byte bit)
+			=> bit < 64 ? value & (1L << bit) : 0;
 	}
 }

@@ -10,8 +10,12 @@ namespace CSASM.Core{
 
 		public static StreamWriter verboseWriter;
 
+		public static Random random;
+
 		public static int Main(MethodInfo main, int stackSize, string[] args){
 			Ops.stack = new CSASMStack(stackSize);
+
+			random = new Random();
 
 			if(args.Length > 0){
 				foreach(string arg in args){

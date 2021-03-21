@@ -58,11 +58,23 @@ namespace CSASM.Core{
 			else if(first is string || second is string){
 				//Strings will concat with the other argument
 				if(first is string s)
-					stack.Push(s + second.ToString());
+					stack.Push(s + (second is string s1 ? s1 : CSASMStack.FormatObject(second)));
 				else if(second is string s2)
-					stack.Push(first.ToString() + s2);
+					stack.Push((first is string s1 ? s1 : CSASMStack.FormatObject(first)) + s2);
 			}else
 				throw new StackException("add", first, second);
+		}
+
+		public static void func_and(){
+			CheckVerbose("and", true);
+
+			object second = stack.Pop();
+			object first = stack.Pop();
+
+			if(first is IPrimitiveInteger ip && second is IPrimitiveInteger)
+				stack.Push(ip.BitwiseAnd(second as IPrimitive));
+			else
+				throw new StackException("and", first, second);
 		}
 
 		public static void func_asl(){
@@ -83,6 +95,38 @@ namespace CSASM.Core{
 				stack.Push(ip.ArithmeticShiftRight());
 			else
 				throw new StackException("asr", obj);
+		}
+
+		public static void func_bit(byte bit){
+			CheckVerbose("bit", true);
+
+			object obj = stack.Pop();
+
+			if(obj is IPrimitiveInteger ip)
+				stack.Push(ip.GetBit(bit));
+			else
+				throw new StackException("bit", obj);
+		}
+
+		public static void func_bits(){
+			CheckVerbose("bits", true);
+
+			object obj = stack.Pop();
+
+			unsafe{
+				if(obj is FloatPrimitive fp){
+					float f = (float)((IPrimitive)fp).Value;
+					int i = *(int*)&f;
+
+					stack.Push(new IntPrimitive(i));
+				}else if(obj is DoublePrimitive dp){
+					double d = (double)((IPrimitive)dp).Value;
+					long l = *(long*)&d;
+
+					stack.Push(new LongPrimitive(l));
+				}else
+					throw new StackException("bits", obj);
+			}
 		}
 
 		public static void func_bytes(){
@@ -457,6 +501,24 @@ namespace CSASM.Core{
 					}else
 						throw new StackException("extern", obj);
 					break;
+				case "Random.Next":
+					stack.Push(Sandbox.random.Next());
+					break;
+				case "Random.Next(i32)":
+					obj = stack.Pop();
+					if(obj is IntPrimitive)
+						stack.Push(Sandbox.random.Next((int)(obj as IPrimitive).Value));
+					else
+						throw new StackException("extern", obj);
+					break;
+				case "Random.Next(i32,i32)":
+					obj2 = stack.Pop();
+					obj = stack.Pop();
+					if(obj is IntPrimitive && obj2 is IntPrimitive)
+						stack.Push(Sandbox.random.Next((int)(obj as IPrimitive).Value, (int)(obj2 as IPrimitive).Value));
+					else
+						throw new StackException("extern", obj);
+					break;
 				default:
 					throw new ArithmeticException($"Argument \"{func}\" did not refer to an implemented function redirect");
 			}
@@ -558,12 +620,14 @@ namespace CSASM.Core{
 		}
 
 		public static void func_len(){
-			object arr = stack.Pop();
+			object obj = stack.Pop();
 
-			if(!arr.GetType().IsArray)
-				throw new StackException("len", arr);
-
-			stack.Push(new IntPrimitive((arr as Array).Length));
+			if(obj is Array a)
+				stack.Push(new IntPrimitive(a.Length));
+			else if(obj is string s)
+				stack.Push(s.Length);
+			else
+				throw new StackException("len", obj);
 		}
 
 		public static void func_mul(){
@@ -631,6 +695,18 @@ namespace CSASM.Core{
 				stack.Push(ip.BitwiseNot());
 			else
 				throw new StackException("not", obj);
+		}
+
+		public static void func_or(){
+			CheckVerbose("or", true);
+
+			object second = stack.Pop();
+			object first = stack.Pop();
+
+			if(first is IPrimitiveInteger ip && second is IPrimitiveInteger)
+				stack.Push(ip.BitwiseOr(second as IPrimitive));
+			else
+				throw new StackException("or", first, second);
 		}
 
 		public static void func_print(){
@@ -756,6 +832,52 @@ namespace CSASM.Core{
 				throw new StackException("sub", first, second);
 		}
 
+		public static void func_substr(){
+			CheckVerbose("substr", true);
+
+			object end = stack.Pop();
+			object start = stack.Pop();
+			object str = stack.Pop();
+
+			if(str is string s){
+				int i, e;
+				if(start is IntPrimitive ip){
+					i = (int)((IPrimitive)ip).Value;
+					if(end is IntPrimitive ip2)
+						e = (int)((IPrimitive)ip2).Value;
+					else if(end is Indexer id2)
+						e = id2.GetIndex(s);
+					else
+						throw new StackException("substr", end);
+				}else if(start is Indexer id){
+					i = id.GetIndex(s);
+					if(end is IntPrimitive ip2)
+						e = (int)((IPrimitive)ip2).Value;
+					else if(end is Indexer id2)
+						e = id2.GetIndex(s);
+					else
+						throw new StackException("substr", end);
+				}else
+					throw new StackException("substr", start);
+
+				//Check the bounds
+				if(i < 0)
+					throw new StackException("Start index must be greater than zero (\"substr\")");
+				if(i > e)
+					throw new StackException("Start index must be before end index (\"substr\")");
+				if(e < 0)
+					throw new StackException("End index must be greater than zero (\"substr\")");
+				if(e > s.Length)
+					throw new StackException("End index must be a location in the input string (\"substr\")");
+
+				if(i == e)
+					stack.Push(string.Empty);
+				else
+					stack.Push(s.Substring(i, e - i));
+			}else
+				throw new StackException("substr", str);
+		}
+
 		public static void func_throw(string message){
 			throw new ThrowException(message);
 		}
@@ -768,6 +890,18 @@ namespace CSASM.Core{
 				throw new StackException("type", obj);
 
 			stack.Push(Utility.GetCSASMType(obj.GetType()));
+		}
+
+		public static void func_xor(){
+			CheckVerbose("xor", true);
+
+			object second = stack.Pop();
+			object first = stack.Pop();
+
+			if(first is IPrimitiveInteger ip && second is IPrimitiveInteger)
+				stack.Push(ip.BitwiseXor(second as IPrimitive));
+			else
+				throw new StackException("xor", first, second);
 		}
 	}
 }
