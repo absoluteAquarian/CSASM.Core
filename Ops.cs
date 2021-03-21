@@ -502,12 +502,12 @@ namespace CSASM.Core{
 						throw new StackException("extern", obj);
 					break;
 				case "Random.Next":
-					stack.Push(Sandbox.random.Next());
+					stack.Push(new IntPrimitive(Sandbox.random.Next()));
 					break;
 				case "Random.Next(i32)":
 					obj = stack.Pop();
 					if(obj is IntPrimitive)
-						stack.Push(Sandbox.random.Next((int)(obj as IPrimitive).Value));
+						stack.Push(new IntPrimitive(Sandbox.random.Next((int)(obj as IPrimitive).Value)));
 					else
 						throw new StackException("extern", obj);
 					break;
@@ -515,7 +515,7 @@ namespace CSASM.Core{
 					obj2 = stack.Pop();
 					obj = stack.Pop();
 					if(obj is IntPrimitive && obj2 is IntPrimitive)
-						stack.Push(Sandbox.random.Next((int)(obj as IPrimitive).Value, (int)(obj2 as IPrimitive).Value));
+						stack.Push(new IntPrimitive(Sandbox.random.Next((int)(obj as IPrimitive).Value, (int)(obj2 as IPrimitive).Value)));
 					else
 						throw new StackException("extern", obj);
 					break;
