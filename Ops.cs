@@ -400,7 +400,10 @@ namespace CSASM.Core{
 							break;
 					}
 				}
-			}
+			}else if(obj is char c && type == "i32")
+				stack.Push(new IntPrimitive((int)c));
+			else
+				throw new StackException("conv", obj);
 
 			CheckVerbose("conv", false);
 		}
