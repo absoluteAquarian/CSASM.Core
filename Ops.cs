@@ -58,9 +58,9 @@ namespace CSASM.Core{
 			else if(first is string || second is string){
 				//Strings will concat with the other argument
 				if(first is string s)
-					stack.Push(s + (second is string s1 ? s1 : CSASMStack.FormatObject(second)));
+					stack.Push(s + (second is string s1 ? s1 : (second is char c1 ? (object)c1 : CSASMStack.FormatObject(second))));
 				else if(second is string s2)
-					stack.Push((first is string s1 ? s1 : CSASMStack.FormatObject(first)) + s2);
+					stack.Push((first is string s1 ? s1 : (first is char c1 ? (object)c1 : CSASMStack.FormatObject(first))) + s2);
 			}else
 				throw new StackException("add", first, second);
 		}
@@ -239,7 +239,7 @@ namespace CSASM.Core{
 		}
 
 		public static void func_comp_gte(){
-			CheckVerbose("comp.gt", true);
+			CheckVerbose("comp.gte", true);
 
 			object obj2 = stack.Pop();
 			object obj = stack.Pop();
@@ -265,7 +265,7 @@ namespace CSASM.Core{
 		}
 
 		public static void func_comp_lte(){
-			CheckVerbose("comp.lt", true);
+			CheckVerbose("comp.lte", true);
 
 			object obj2 = stack.Pop();
 			object obj = stack.Pop();
