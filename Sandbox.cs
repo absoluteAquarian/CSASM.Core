@@ -12,10 +12,17 @@ namespace CSASM.Core{
 
 		public static Random random;
 
+		internal static IOHandle[] ioHandles;
+
 		public static int Main(MethodInfo main, int stackSize, string[] args){
 			Ops.stack = new CSASMStack(stackSize);
 
 			random = new Random();
+
+			const int HANDLES = 8;
+			ioHandles = new IOHandle[HANDLES];
+			for(int i = 0; i < HANDLES; i++)
+				ioHandles[i] = new IOHandle();
 
 			if(args.Length > 0){
 				foreach(string arg in args){
@@ -32,9 +39,6 @@ namespace CSASM.Core{
 
 			try{
 				main.Invoke(null, null);
-
-				if(verbose)
-					verboseWriter.Close();
 				return 0;
 			}catch(AccumulatorException aex){
 				Console.WriteLine($"AccumulatorException thrown: {aex.Message}");
@@ -50,10 +54,15 @@ namespace CSASM.Core{
 				//Remove the part saying the name since it's said below
 				message = message.Substring(message.IndexOf(":") + 2);
 				Console.WriteLine($"{ex.GetType().Name} thrown in compiled code:\n   {message}");
-			}
+			}finally{
+				//No matter what, the file handles need to be disposed of
+				for(int i = 0; i < HANDLES; i++)
+					if(ioHandles[i].file != null)
+						(ioHandles[i].handle as IDisposable).Dispose();
 
-			if(verbose)
-				verboseWriter.Close();
+				if(verbose)
+					verboseWriter.Close();
+			}
 			return -1;
 		}
 	}

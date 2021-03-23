@@ -16,10 +16,10 @@ namespace CSASM.Core{
 	public class StackException : Exception{
 		public StackException(string message) : base(message){ }
 
-		public StackException(string instruction, object value) : base($"Stack value had an invalid type for the \"{instruction}\" instruction:" +
+		public StackException(string instruction, object value) : base($"Stack value had an invalid type for the \"{instruction}\" instruction: " +
 			$"{(value is null ? "null reference" : Utility.GetCSASMType(value.GetType()))}"){ }
 
-		public StackException(string instruction, object value, object value2) : base($"Stack values had invalid types for the \"{instruction}\" instruction:" +
+		public StackException(string instruction, object value, object value2) : base($"Stack values had invalid types for the \"{instruction}\" instruction: " +
 			$"{(value is null ? "null reference" : Utility.GetCSASMType(value.GetType()))}," +
 			$"{(value is null ? "null reference" : Utility.GetCSASMType(value2.GetType()))}"){ }
 	}

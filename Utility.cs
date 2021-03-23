@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 
 namespace CSASM.Core{
 	public static class Utility{
@@ -28,6 +29,7 @@ namespace CSASM.Core{
 				"String" => "str",
 				"Object" => "obj",
 				"Indexer" => "^<u32>",
+				"Boolean" => "System.Boolean",
 				null => throw new ArgumentNullException("type.Name"),
 				_ when type.IsArray => $"~arr:{GetCSASMType(type.GetElementType())}",
 				_ => throw new Exception($"Type \"{type.Name}\" does not correspond to a valid CSASM type")
@@ -169,5 +171,292 @@ namespace CSASM.Core{
 
 		public static double? AsFloat(object obj)
 			=> obj as double? ?? obj as float?;
+
+		private static void CheckIOActiveHandle(byte id, out IOHandle handle){
+			if(id > 7)
+				throw new StackException($"I/O handle reference was not valid: {id}");
+
+			handle = Sandbox.ioHandles[id];
+			if(handle.file != null)
+				throw new InvalidOperationException("Cannot modify I/O handle while it is in use");
+		}
+
+		public static void SetIOHandleType(bool write, byte id){
+			CheckIOActiveHandle(id, out IOHandle handle);
+			handle.write = write;
+		}
+
+		public static void SetIOHandleMode(FileMode mode, byte id){
+			CheckIOActiveHandle(id, out IOHandle handle);
+			handle.mode = mode;
+		}
+
+		public static void SetIOHandleFile(string file, byte id){
+			if(id > 7)
+				throw new StackException($"I/O handle reference was not valid: {id}");
+
+			IOHandle handle = Sandbox.ioHandles[id];
+
+			if(handle.file == null){
+				if(file != null){
+					handle.file = file;
+
+					if(!handle.isStream){
+						if(handle.write)
+							handle.handle = new BinaryWriter(File.Open(handle.file, handle.mode));
+						else
+							handle.handle = new BinaryReader(File.Open(handle.file, handle.mode));
+					}else{
+						if(handle.write)
+							handle.handle = new StreamWriter(File.Open(handle.file, handle.mode));
+						else
+							handle.handle = new StreamReader(File.Open(handle.file, handle.mode));
+					}
+				}
+			}else if(file == null){
+				handle.file = file;
+
+				(handle.handle as IDisposable).Dispose();
+			}else
+				throw new InvalidOperationException("Cannot modify I/O handle while it is in use");
+		}
+
+		public static void SetIOHandleStream(bool isStream, byte id){
+			CheckIOActiveHandle(id, out IOHandle handle);
+			handle.isStream = isStream;
+		}
+
+		public static void SetIOHandleNewline(bool newLine, byte id){
+			if(id > 7)
+				throw new StackException($"I/O handle reference was not valid: {id}");
+
+			IOHandle handle = Sandbox.ioHandles[id];
+			handle.newLine = newLine;
+		}
+
+		public static bool GetIOHandleType(byte id){
+			if(id > 7)
+				throw new StackException($"I/O handle reference was not valid: {id}");
+
+			IOHandle handle = Sandbox.ioHandles[id];
+			return handle.write;
+		}
+
+		public static FileMode GetIOHandleMode(byte id){
+			if(id > 7)
+				throw new StackException($"I/O handle reference was not valid: {id}");
+
+			IOHandle handle = Sandbox.ioHandles[id];
+			return handle.mode;
+		}
+
+		public static string GetIOHandleFile(byte id){
+			if(id > 7)
+				throw new StackException($"I/O handle reference was not valid: {id}");
+
+			IOHandle handle = Sandbox.ioHandles[id];
+			return handle.file;
+		}
+
+		public static bool GetIOHandleStream(byte id){
+			if(id > 7)
+				throw new StackException($"I/O handle reference was not valid: {id}");
+
+			IOHandle handle = Sandbox.ioHandles[id];
+			return handle.isStream;
+		}
+
+		public static bool GetIOHandleNewline(byte id){
+			if(id > 7)
+				throw new StackException($"I/O handle reference was not valid: {id}");
+
+			IOHandle handle = Sandbox.ioHandles[id];
+			return handle.newLine;
+		}
+
+		public static void IOHandleRead(byte id, string type){
+			if(id > 7)
+				throw new StackException($"I/O handle reference was not valid: {id}");
+
+			IOHandle handle = Sandbox.ioHandles[id];
+			if(handle.file == null)
+				throw new IOException($"I/O Handle {id} was not initialized");
+			if(handle.write)
+				throw new IOException($"I/O Handle {id} was set to write-only.  Cannot read using this I/O handle");
+
+			if(handle.isStream){
+				StreamReader sReader = handle.handle as StreamReader;
+				switch(type){
+					case "char":
+						Ops.stack.Push((char)sReader.Read());
+						break;
+					case "str":
+						Ops.stack.Push(sReader.ReadLine());
+						break;
+					default:
+						throw new IOException($"I/O handle {id} was set to Stream reading.  The only types supported in this mode are \"char\" and \"str\"");
+				}
+
+				return;
+			}
+
+			BinaryReader reader = handle.handle as BinaryReader;
+
+			Ops.stack.Push(ReadCSASMObj(type, reader));
+		}
+
+		public static void IOHandleWrite(byte id, object value){
+			if(id > 7)
+				throw new StackException($"I/O handle reference was not valid: {id}");
+
+			IOHandle handle = Sandbox.ioHandles[id];
+			if(handle.file == null)
+				throw new IOException($"I/O Handle {id} was not initialized");
+			if(!handle.write)
+				throw new IOException($"I/O Handle {id} was set to read-only.  Cannot write using this I/O handle");
+
+			if(handle.isStream){
+				StreamWriter sWriter = handle.handle as StreamWriter;
+
+				if(value is Array a){
+					string rep = CSASMStack.FormatArray(a);
+					if(handle.newLine)
+						sWriter.WriteLine(rep);
+					else
+						sWriter.Write(rep);
+				}else{
+					if(handle.newLine)
+						sWriter.WriteLine(value);
+					else
+						sWriter.Write(value);
+				}
+
+				return;
+			}
+
+			BinaryWriter writer = handle.handle as BinaryWriter;
+
+			WriteCSASMObj(writer, value);
+		}
+
+		private static object ReadArray(BinaryReader reader){
+			string subType = reader.ReadString();
+			if(subType.StartsWith("~arr:"))
+				throw new IOException("CSASM does not support arrays of arrays");
+
+			int length = Read7BitEncodedInt(reader);
+
+			Array array = Array.CreateInstance(GetCsharpType(subType), length);
+
+			for(int i = 0; i < length; i++)
+				array.SetValue(ReadCSASMObj(subType, reader), i);
+
+			return array;
+		}
+
+		private static object ReadCSASMObj(string type, BinaryReader reader)
+			=> type switch{
+				"i8" => new SbytePrimitive(reader.ReadSByte()),
+				"i16" => new ShortPrimitive(reader.ReadUInt16()),
+				"i32" => new IntPrimitive(reader.ReadInt32()),
+				"i64" => new LongPrimitive(reader.ReadInt64()),
+				"u8" => new BytePrimitive(reader.ReadByte()),
+				"u16" => new UshortPrimitive(reader.ReadUInt16()),
+				"u32" => new UintPrimitive(reader.ReadUInt32()),
+				"u64" => new UlongPrimitive(reader.ReadUInt64()),
+				"f32" => new FloatPrimitive(reader.ReadSingle()),
+				"f64" => new DoublePrimitive(reader.ReadDouble()),
+				"char" => reader.ReadChar(),
+				"str" => reader.ReadString(),
+				"obj" => throw new InvalidOperationException("Type \"obj\" cannot be used as the type argument for file reading"),
+				"^<u32>" => new Indexer(reader.ReadUInt32()),
+				"~arr" => ReadArray(reader),
+				_ => throw new IOException($"Unknown type: {type}")
+			};
+
+		private static int Read7BitEncodedInt(BinaryReader reader){
+			byte b;
+			int ret = 0;
+			int reads = 5;
+			do{
+				b = reader.ReadByte();
+				if(--reads <= 0 && (b & 0x80) != 0)
+					throw new IOException("Value read was not a 7-bit encoded Int32");
+
+				ret |= b << (7 * (reads - 5));
+			}while((b & 0x80) != 0);
+
+			return ret;
+		}
+
+		private static void WriteCSASMObj(BinaryWriter writer, object obj){
+			if(obj is null)
+				throw new IOException("Value was null");
+
+			string type = GetCSASMType(obj.GetType());
+			IPrimitive ip = obj is IPrimitive ? obj as IPrimitive : null;
+			switch(type){
+				case "i8":
+					writer.Write((sbyte)ip.Value);
+					break;
+				case "i16":
+					writer.Write((short)ip.Value);
+					break;
+				case "i32":
+					writer.Write((int)ip.Value);
+					break;
+				case "i64":
+					writer.Write((long)ip.Value);
+					break;
+				case "u8":
+					writer.Write((byte)ip.Value);
+					break;
+				case "u16":
+					writer.Write((ushort)ip.Value);
+					break;
+				case "u32":
+					writer.Write((uint)ip.Value);
+					break;
+				case "u64":
+					writer.Write((ulong)ip.Value);
+					break;
+				case "char":
+					writer.Write((char)obj);
+					break;
+				case "str":
+					writer.Write(obj as string);
+					break;
+				case "^<u32>":
+					writer.Write(((Indexer)obj).offset);
+					break;
+				default:
+					if(type.StartsWith("~arr:"))
+						WriteArray(writer, obj);
+					else
+						throw new IOException($"Unknown type: {type}");
+					break;
+			}
+		}
+
+		private static void WriteArray(BinaryWriter writer, object obj){
+			string subType = GetCSASMType(obj.GetType().GetElementType());
+			if(subType.StartsWith("~arr:"))
+				throw new IOException("CSASM does not support arrays of arrays");
+
+			Array arr = obj as Array;
+
+			writer.Write(subType);
+			Write7BitEncodedInt(writer, arr.Length);
+
+			for(int i = 0; i < arr.Length; i++)
+				WriteCSASMObj(writer, arr.GetValue(i));
+		}
+
+		private static void Write7BitEncodedInt(BinaryWriter writer, int value){
+			do{
+				writer.Write((byte)(value > 0x7f ? (value & 0x7f) | 0x80 : value));
+				value >>= 7;
+			}while(value > 0);
+		}
 	}
 }

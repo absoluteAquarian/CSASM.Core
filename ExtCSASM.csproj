@@ -54,6 +54,7 @@
     <Compile Include="Exceptions.cs" />
     <Compile Include="FloatingPointPrimitives.cs" />
     <Compile Include="Indexer.cs" />
+    <Compile Include="IOHandle.cs" />
     <Compile Include="IPrimitive.cs" />
     <Compile Include="IPrimitiveInteger.cs" />
     <Compile Include="IntegerPrimitives.cs" />

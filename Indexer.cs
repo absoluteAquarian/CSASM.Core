@@ -16,5 +16,7 @@ namespace CSASM.Core{
 
 			throw new ArgumentException("Object did not refer to an array or string instance.");
 		}
+
+		public override string ToString() => $"^{offset}";
 	}
 }

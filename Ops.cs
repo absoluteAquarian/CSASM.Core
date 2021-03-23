@@ -312,16 +312,23 @@ namespace CSASM.Core{
 				throw new StackException("Array instances cannot be converted using the \"conv\" operator");
 			else if(obj is IPrimitive ip){
 				object value = ip.Value;
-				try{
-					Type newType = Utility.GetCsharpType(type);
-					IPrimitive prim = Utility.CreatePrimitive(newType, value);
-					stack.Push(prim);
-				}catch(InvalidCastException){
-					throw new StackException("conv", obj);
-				}catch(ThrowException tex){
-					throw tex;
-				}catch{
-					throw new StackException("conv", obj);
+				if(ip is UintPrimitive){
+					if(type == "^<u32>")
+						stack.Push(new Indexer((uint)value));
+					else
+						throw new StackException("conv", obj);
+				}else{
+					try{
+						Type newType = Utility.GetCsharpType(type);
+						IPrimitive prim = Utility.CreatePrimitive(newType, value);
+						stack.Push(prim);
+					}catch(InvalidCastException){
+						throw new StackException("conv", obj);
+					}catch(ThrowException tex){
+						throw tex;
+					}catch{
+						throw new StackException("conv", obj);
+					}
 				}
 			}else if(obj is string s){
 				if(type == "char")
@@ -541,6 +548,35 @@ namespace CSASM.Core{
 				throw new StackException("inc", obj);
 		}
 
+		public static void func_index(){
+			CheckVerbose("index", true);
+
+			object find = stack.Pop();
+			object source = stack.Pop();
+
+			if(source is string s){
+				if(find is string f)
+					stack.Push(new IntPrimitive(s.IndexOf(f)));
+				else if(find is char c)
+					stack.Push(new IntPrimitive(s.IndexOf(c)));
+				else
+					throw new StackException("index", source, find);
+			}else if(source is Array a){
+				if(source.GetType().GetElementType() == find.GetType()){
+					for(int i = 0; i < a.Length; i++){
+						if(a.GetValue(i).Equals(find)){
+							stack.Push(new IntPrimitive(i));
+							return;
+						}
+					}
+
+					stack.Push(new IntPrimitive(-1));
+				}else
+					throw new StackException("index", source, find);
+			}else
+				throw new StackException("index", source);
+		}
+
 		public static void func_ink(string prompt){
 			Console.Write(prompt);
 
@@ -712,6 +748,21 @@ namespace CSASM.Core{
 				throw new StackException("or", first, second);
 		}
 
+		public static void func_pow(){
+			CheckVerbose("pow", true);
+
+			object second = stack.Pop();
+			object first = stack.Pop();
+
+			if(first is IPrimitive ip && second is IPrimitive ip2){
+				DoublePrimitive dp = (DoublePrimitive)Utility.CreatePrimitive(typeof(DoublePrimitive), ip.Value);
+				DoublePrimitive dp2 = (DoublePrimitive)Utility.CreatePrimitive(typeof(DoublePrimitive), ip2.Value);
+
+				stack.Push(Math.Pow((double)(dp as IPrimitive).Value, (double)(dp2 as IPrimitive).Value));
+			}else
+				throw new StackException("root", first, second);
+		}
+
 		public static void func_print(){
 			CheckVerbose("print", true);
 
@@ -753,6 +804,21 @@ namespace CSASM.Core{
 				stack.Push(ip.ArithmeticRotateLeft(ref flags));
 			else
 				throw new StackException("rol", obj);
+		}
+
+		public static void func_root(){
+			CheckVerbose("root", true);
+
+			object second = stack.Pop();
+			object first = stack.Pop();
+
+			if(first is IPrimitive ip && second is IPrimitive ip2){
+				DoublePrimitive dp = (DoublePrimitive)Utility.CreatePrimitive(typeof(DoublePrimitive), ip.Value);
+				DoublePrimitive dp2 = (DoublePrimitive)Utility.CreatePrimitive(typeof(DoublePrimitive), ip2.Value);
+
+				stack.Push(Math.Pow((double)(dp as IPrimitive).Value, 1.0d / (double)(dp2 as IPrimitive).Value));
+			}else
+				throw new StackException("root", first, second);
 		}
 
 		public static void func_ror(){
