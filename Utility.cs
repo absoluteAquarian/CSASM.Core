@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 
 namespace CSASM.Core{
 	public static class Utility{
@@ -171,6 +172,36 @@ namespace CSASM.Core{
 
 		public static double? AsFloat(object obj)
 			=> obj as double? ?? obj as float?;
+
+		public static string IntegerToBinary(object obj, bool leadingZeroes = false){
+			if(!(obj is IPrimitiveInteger))
+				throw new StackException("Value on stack was not an integer");
+
+			object value = (obj as IPrimitive).Value;
+			bool foundSetBit = false;
+
+			StringBuilder sb = new StringBuilder(64);
+			ulong num;
+
+			if(obj is IUnsignedPrimitiveInteger)
+				num = AsUInteger(value).Value;
+			else
+				num = (ulong)AsInteger(value).Value;
+
+			int place = (obj as IPrimitiveInteger).BitSize();
+			while(--place >= 0){
+				ulong bit = num & (1uL << place);
+
+				if(bit == 0 && (foundSetBit || (!foundSetBit && leadingZeroes)))
+					sb.Append("0");
+				else if(bit == 1){
+					foundSetBit = true;
+					sb.Append("1");
+				}
+			}
+
+			return sb.ToString();
+		}
 
 		private static void CheckIOActiveHandle(byte id, out IOHandle handle){
 			if(id > 7)

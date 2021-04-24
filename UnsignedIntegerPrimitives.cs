@@ -104,6 +104,8 @@
 
 		object IPrimitiveInteger.GetBit(byte bit)
 			=> bit < 32 ? value & (1 << bit) : 0;
+
+		int IPrimitiveInteger.BitSize() => 32;
 	}
 
 	public struct UshortPrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger{
@@ -212,6 +214,8 @@
 
 		object IPrimitiveInteger.GetBit(byte bit)
 			=> bit < 16 ? value & (1 << bit) : 0;
+
+		int IPrimitiveInteger.BitSize() => 16;
 	}
 
 	public struct BytePrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger{
@@ -320,6 +324,8 @@
 
 		object IPrimitiveInteger.GetBit(byte bit)
 			=> bit < 8 ? value & (1 << bit) : 0;
+
+		int IPrimitiveInteger.BitSize() => 8;
 	}
 
 	public struct UlongPrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger{
@@ -430,5 +436,7 @@
 
 		object IPrimitiveInteger.GetBit(byte bit)
 			=> bit < 64 ? value & (1uL << bit) : 0;
+
+		int IPrimitiveInteger.BitSize() => 64;
 	}
 }

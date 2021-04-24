@@ -12,5 +12,7 @@
 		object BitwiseXor(IPrimitive other);
 
 		object GetBit(byte bit);
+
+		int BitSize();
 	}
 }

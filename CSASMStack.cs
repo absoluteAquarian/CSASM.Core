@@ -58,11 +58,6 @@ namespace CSASM.Core{
 			string ret = "[ ";
 
 			for(int i = 0; i < a.Length; i++){
-				if(i == 5){
-					ret += ", ...";
-					break;
-				}
-
 				var elem = a.GetValue(i);
 
 				if(i > 0)

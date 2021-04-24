@@ -97,6 +97,28 @@ namespace CSASM.Core{
 				throw new StackException("asr", obj);
 		}
 
+		public static void func_bin(){
+			CheckVerbose("bin", true);
+
+			object obj = stack.Pop();
+
+			if(obj is IPrimitiveInteger){
+				stack.Push(Utility.IntegerToBinary(obj, leadingZeroes: false));
+			}else
+				throw new StackException("bin", obj);
+		}
+
+		public static void func_binz(){
+			CheckVerbose("bin", true);
+
+			object obj = stack.Pop();
+
+			if(obj is IPrimitiveInteger){
+				stack.Push(Utility.IntegerToBinary(obj, leadingZeroes: true));
+			}else
+				throw new StackException("bin", obj);
+		}
+
 		public static void func_bit(byte bit){
 			CheckVerbose("bit", true);
 
@@ -945,6 +967,14 @@ namespace CSASM.Core{
 					stack.Push(s.Substring(i, e - i));
 			}else
 				throw new StackException("substr", str);
+		}
+
+		public static void func_swap(){
+			object second = stack.Pop();
+			object first = stack.Pop();
+
+			stack.Push(second);
+			stack.Push(first);
 		}
 
 		public static void func_throw(string message){
