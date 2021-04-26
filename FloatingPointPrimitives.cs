@@ -1,5 +1,7 @@
-﻿namespace CSASM.Core{
-	public struct FloatPrimitive : IPrimitive{
+﻿using System;
+
+namespace CSASM.Core{
+	public struct FloatPrimitive : IPrimitive, IComparable<FloatPrimitive>{
 		readonly float value;
 
 		public FloatPrimitive(float value) => this.value = value;
@@ -60,9 +62,11 @@
 				return new FloatPrimitive(value - p.value);
 			throw new ArithmeticException("subtraction", this, other);
 		}
+
+		int IComparable<FloatPrimitive>.CompareTo(FloatPrimitive other) => value.CompareTo(other.value);
 	}
 
-	public struct DoublePrimitive : IPrimitive{
+	public struct DoublePrimitive : IPrimitive, IComparable<DoublePrimitive>{
 		readonly double value;
 
 		public override string ToString() => value.ToString();
@@ -123,5 +127,7 @@
 				return new DoublePrimitive(value - p.value);
 			throw new ArithmeticException("subtraction", this, other);
 		}
+
+		int IComparable<DoublePrimitive>.CompareTo(DoublePrimitive other) => value.CompareTo(other.value);
 	}
 }

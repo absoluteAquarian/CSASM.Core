@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -24,18 +25,36 @@ namespace CSASM.Core{
 			for(int i = 0; i < HANDLES; i++)
 				ioHandles[i] = new IOHandle();
 
+			List<string> cmdArgs = new List<string>(args.Length);
+			bool flagArg = false;
 			if(args.Length > 0){
 				foreach(string arg in args){
-					if(arg == "-verbose")
+					if(arg == "-verbose"){
 						verbose = true;
-					else if(arg == "-reportstack")
+						flagArg = true;
+					}else if(arg == "-reportstack"){
 						reportStackUsage = true;
+						flagArg = true;
+					}else{
+						if(flagArg)
+							throw new Exception("Debug flags must be specified after all program arguments");
+
+						cmdArgs.Add(arg);
+					}
 				}
 			}
 
+			Ops.args = cmdArgs.ToArray();
+
 			//Create the verbose output
-			if(verbose)
+			if(verbose || reportStackUsage)
 				verboseWriter = new StreamWriter(File.Open("verbose.txt", FileMode.Create));
+
+			//Try to print any unhandled exceptions to the console
+			AppDomain.CurrentDomain.UnhandledException += (obj, args) => {
+				Console.Out.Flush();
+				Console.WriteLine("Unhandled exception\n" + args.ExceptionObject.ToString());
+			};
 
 			try{
 				main.Invoke(null, null);

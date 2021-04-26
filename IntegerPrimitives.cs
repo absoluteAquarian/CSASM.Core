@@ -1,5 +1,7 @@
-﻿namespace CSASM.Core{
-	public struct IntPrimitive : IPrimitive, IPrimitiveInteger{
+﻿using System;
+
+namespace CSASM.Core{
+	public struct IntPrimitive : IPrimitive, IPrimitiveInteger, IComparable<IntPrimitive>{
 		readonly int value;
 
 		public IntPrimitive(int value) => this.value = value;
@@ -108,9 +110,11 @@
 			=> bit < 32 ? value & (1 << bit) : 0;
 
 		int IPrimitiveInteger.BitSize() => 32;
+
+		int IComparable<IntPrimitive>.CompareTo(IntPrimitive other) => value.CompareTo(other.value);
 	}
 
-	public struct ShortPrimitive : IPrimitive, IPrimitiveInteger{
+	public struct ShortPrimitive : IPrimitive, IPrimitiveInteger, IComparable<ShortPrimitive>{
 		readonly short value;
 
 		public ShortPrimitive(short value) => this.value = value;
@@ -218,9 +222,11 @@
 			=> bit < 16 ? value & (1 << bit) : 0;
 
 		int IPrimitiveInteger.BitSize() => 16;
+
+		int IComparable<ShortPrimitive>.CompareTo(ShortPrimitive other) => value.CompareTo(other.value);
 	}
 
-	public struct SbytePrimitive : IPrimitive, IPrimitiveInteger{
+	public struct SbytePrimitive : IPrimitive, IPrimitiveInteger, IComparable<SbytePrimitive>{
 		readonly sbyte value;
 
 		public SbytePrimitive(sbyte value) => this.value = value;
@@ -328,9 +334,11 @@
 			=> bit < 8 ? value & (1 << bit) : 0;
 
 		int IPrimitiveInteger.BitSize() => 8;
+
+		int IComparable<SbytePrimitive>.CompareTo(SbytePrimitive other) => value.CompareTo(other.value);
 	}
 
-	public struct LongPrimitive : IPrimitive, IPrimitiveInteger{
+	public struct LongPrimitive : IPrimitive, IPrimitiveInteger, IComparable<LongPrimitive>{
 		readonly long value;
 
 		public LongPrimitive(long value) => this.value = value;
@@ -438,5 +446,7 @@
 			=> bit < 64 ? value & (1L << bit) : 0;
 
 		int IPrimitiveInteger.BitSize() => 64;
+
+		int IComparable<LongPrimitive>.CompareTo(LongPrimitive other) => value.CompareTo(other.value);
 	}
 }

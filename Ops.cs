@@ -7,6 +7,8 @@ namespace CSASM.Core{
 		public static CSASMStack stack;
 		public static object _reg_a, _reg_1, _reg_2, _reg_3, _reg_4, _reg_5;
 
+		public static string[] args;
+
 		private static byte flags;
 
 		public static bool Carry{
@@ -26,6 +28,8 @@ namespace CSASM.Core{
 
 		private static void CheckVerbose(string instruction, bool beginningOfInstr){
 			if(Sandbox.verbose){
+				Sandbox.verboseWriter.Flush();
+
 				Sandbox.verboseWriter.WriteLine($"[CSASM] Stack at {(beginningOfInstr ? "beginning" : "end")} of instruction \"{instruction}\":" +
 					$"\n   {stack}");
 			}
@@ -61,7 +65,9 @@ namespace CSASM.Core{
 					stack.Push(s + (second is string s1 ? s1 : (second is char c1 ? (object)c1 : CSASMStack.FormatObject(second))));
 				else if(second is string s2)
 					stack.Push((first is string s1 ? s1 : (first is char c1 ? (object)c1 : CSASMStack.FormatObject(first))) + s2);
-			}else
+			}else if(first is ArithmeticSet set && second is ArithmeticSet set2)
+				stack.Push(set.Union(set2));
+			else
 				throw new StackException("add", first, second);
 		}
 
@@ -156,9 +162,13 @@ namespace CSASM.Core{
 
 			object obj = stack.Pop();
 
-			stack.Push(new IntPrimitive(obj switch{
+			stack.Push(new IntPrimitive(ObjBytes(obj)));
+		}
+
+		private static int ObjBytes(object obj){
+			return obj switch{
 				string s =>          s.Length,
-				char _ =>            1,
+				char _ =>            2,
 				BytePrimitive _ =>   1,
 				SbytePrimitive _ =>  1,
 				UshortPrimitive _ => 2,
@@ -170,9 +180,10 @@ namespace CSASM.Core{
 				FloatPrimitive _ =>  4,
 				DoublePrimitive _ => 8,
 				Array arr =>         ArrayBytes(arr),
+				ArithmeticSet set => set.ToArray().Length * 4,
 				null => throw new StackException("bytes", obj),
 				_ => throw new StackException("bytes", obj)
-			}));
+			};
 		}
 
 		private static int ArrayBytes(Array arr){
@@ -182,16 +193,11 @@ namespace CSASM.Core{
 			int bytes = 0;
 			Type elemType = arr.GetType().GetElementType();
 			if(elemType == typeof(string) || elemType == typeof(object)){
-				for(int i = 0; i < arr.Length; i++){
-					stack.Push(arr.GetValue(i));
-					func_bytes();
-					bytes += (int)((IPrimitive)stack.Pop()).Value;
-				}
+				for(int i = 0; i < arr.Length; i++)
+					bytes += ObjBytes(arr.GetValue(i)) + (Environment.Is64BitOperatingSystem ? 16 : 8);
 			}else{
 				//All elements have the same size
-				stack.Push(arr.GetValue(0));
-				func_bytes();
-				bytes = (int)((IPrimitive)stack.Pop()).Value * arr.Length;
+				bytes = ObjBytes(arr.GetValue(0)) * arr.Length;
 			}
 
 			return bytes;
@@ -224,6 +230,12 @@ namespace CSASM.Core{
 			}else if(obj is string s && obj2 is string s2){
 				//String comparison
 				if(s == s2)
+					Comparison = true;
+			}else if(obj is ArithmeticSet set && obj2 is ArithmeticSet set2){
+				if(set == set2)
+					Comparison = true;
+			}else if(obj is Range range && obj2 is Range range2){
+				if(range == range2)
 					Comparison = true;
 			}else{
 				Type t = obj.GetType();
@@ -330,7 +342,16 @@ namespace CSASM.Core{
 					stack.Push(s.ToCharArray());
 				else
 					throw new StackException("conv", obj);
-			}else if(type.StartsWith("~arr:") && obj.GetType().IsArray)
+			}else if(type == "~arr" && (obj is ArithmeticSet || obj is Range)){
+				if(obj is ArithmeticSet set)
+					stack.Push(set.ToArray());
+				else if(obj is Range range){
+					//Ranges with indexers pop an additional value off of the stack to set the indexer
+					object source = range.startIndexer != null || range.endIndexer != null ? stack.Pop() : null;
+
+					stack.Push(range.ToArray(source));
+				}
+			}else if(type.StartsWith("~arr:"))
 				throw new StackException("Array instances cannot be converted using the \"conv\" operator");
 			else if(obj is IPrimitive ip){
 				object value = ip.Value;
@@ -457,6 +478,19 @@ namespace CSASM.Core{
 				throw new StackException("dec", obj);
 		}
 
+		public static void func_disj(){
+			CheckVerbose("disj", true);
+
+			object obj2 = stack.Pop();
+			object obj = stack.Pop();
+
+			if(obj is ArithmeticSet set && obj2 is ArithmeticSet set2){
+				if(set.IsDisjoint(set2))
+					Comparison = true;
+			}else
+				throw new StackException("disj", obj, obj2);
+		}
+
 		public static void func_div(){
 			CheckVerbose("div", true);
 			
@@ -472,7 +506,9 @@ namespace CSASM.Core{
 					stack.Push(s.Split(new char[]{ c }, StringSplitOptions.None));
 				else
 					throw new StackException("div", first, second);
-			}else
+			}else if(first is ArithmeticSet set && second is ArithmeticSet set2)
+				stack.Push(set.Intersection(set2));
+			else
 				throw new StackException("div", first, second);
 		}
 
@@ -747,6 +783,49 @@ namespace CSASM.Core{
 				throw new StackException("neg", obj);
 		}
 
+		public static void func_newindex(){
+			CheckVerbose("newindex", true);
+
+			object obj = stack.Pop();
+
+			if(obj is UintPrimitive ip)
+				stack.Push(new Indexer((uint)(ip as IPrimitive).Value));
+			else
+				throw new StackException("newindex", obj);
+		}
+
+		public static void func_newrange(){
+			CheckVerbose("newrange", true);
+
+			object end = stack.Pop();
+			object start = stack.Pop();
+
+			if(start is Indexer && end is IntPrimitive)
+				throw new StackException("newrange", start, end);
+			else if(start is IntPrimitive ip && end is IntPrimitive ip2)
+				stack.Push(new Range((int)(ip as IPrimitive).Value, (int)(ip2 as IPrimitive).Value));
+			else if(start is IntPrimitive ip3 && end is Indexer idx)
+				stack.Push(new Range((int)(ip3 as IPrimitive).Value, idx));
+			else if(start is Indexer idx2 && end is Indexer idx3)
+				stack.Push(new Range(idx2, idx3));
+			else
+				throw new StackException("newrange", start, end);
+		}
+
+		public static void func_newset(){
+			CheckVerbose("newset", true);
+
+			object arr = stack.Pop();
+			object a0;
+
+			if(arr is Array array && (Utility.AsInteger(a0 = array.GetValue(0)) != null || Utility.AsUInteger(a0) != null))
+				stack.Push(new ArithmeticSet(array));
+			else if(arr is Range range)
+				stack.Push(new ArithmeticSet(range));
+			else
+				throw new StackException("newset", arr);
+		}
+
 		public static void func_not(){
 			CheckVerbose("not", true);
 
@@ -813,6 +892,8 @@ namespace CSASM.Core{
 
 			if(first is IPrimitive ip && second is IPrimitive ip2)
 				stack.Push(ip.Remainder(ip2));
+			else if(first is ArithmeticSet set && second is ArithmeticSet set2)
+				stack.Push(set.Intersection(set2));
 			else
 				throw new StackException("rem", first, second);
 		}
@@ -919,7 +1000,9 @@ namespace CSASM.Core{
 					stack.Push(s.Replace(c.ToString(), string.Empty));
 				else
 					throw new StackException("Instruction \"sub\" must have a <str> or <char> value as the second argument when manipulating strings.");
-			}else
+			}else if(first is ArithmeticSet set && second is ArithmeticSet set2)
+				stack.Push(set.Difference(set2));
+			else
 				throw new StackException("sub", first, second);
 		}
 
@@ -927,8 +1010,26 @@ namespace CSASM.Core{
 			CheckVerbose("substr", true);
 
 			object end = stack.Pop();
+			object str;
+
+			//If "end" is a range, then the next value on the stack will be a string
+			if(end is Range range){
+				str = stack.Pop();
+
+				if(str is string s2){
+					range.GetValues(s2, out int posStart, out int posEnd);
+
+					if(posStart > posEnd)
+						throw new StackException("Range argument for instruction \"substr\" was invalid");
+
+					stack.Push(s2.Substring(posStart, posEnd - posStart));
+					return;
+				}else
+					throw new StackException("substr", str, end);
+			}
+
 			object start = stack.Pop();
-			object str = stack.Pop();
+			str = stack.Pop();
 
 			if(str is string s){
 				int i, e;

@@ -1,5 +1,7 @@
-﻿namespace CSASM.Core{
-	public struct UintPrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger{
+﻿using System;
+
+namespace CSASM.Core{
+	public struct UintPrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger, IComparable<UintPrimitive>{
 		readonly uint value;
 
 		public UintPrimitive(uint value) => this.value = value;
@@ -106,9 +108,11 @@
 			=> bit < 32 ? value & (1 << bit) : 0;
 
 		int IPrimitiveInteger.BitSize() => 32;
+
+		int IComparable<UintPrimitive>.CompareTo(UintPrimitive other) => value.CompareTo(other.value);
 	}
 
-	public struct UshortPrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger{
+	public struct UshortPrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger, IComparable<UshortPrimitive>{
 		readonly ushort value;
 
 		public UshortPrimitive(ushort value) => this.value = value;
@@ -216,9 +220,11 @@
 			=> bit < 16 ? value & (1 << bit) : 0;
 
 		int IPrimitiveInteger.BitSize() => 16;
+
+		int IComparable<UshortPrimitive>.CompareTo(UshortPrimitive other) => value.CompareTo(other.value);
 	}
 
-	public struct BytePrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger{
+	public struct BytePrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger, IComparable<BytePrimitive>{
 		readonly byte value;
 
 		public BytePrimitive(byte value) => this.value = value;
@@ -326,9 +332,11 @@
 			=> bit < 8 ? value & (1 << bit) : 0;
 
 		int IPrimitiveInteger.BitSize() => 8;
+
+		int IComparable<BytePrimitive>.CompareTo(BytePrimitive other) => value.CompareTo(other.value);
 	}
 
-	public struct UlongPrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger{
+	public struct UlongPrimitive : IPrimitive, IPrimitiveInteger, IUnsignedPrimitiveInteger, IComparable<UlongPrimitive>{
 		readonly ulong value;
 
 		public UlongPrimitive(ulong value) => this.value = value;
@@ -438,5 +446,7 @@
 			=> bit < 64 ? value & (1uL << bit) : 0;
 
 		int IPrimitiveInteger.BitSize() => 64;
+
+		int IComparable<UlongPrimitive>.CompareTo(UlongPrimitive other) => value.CompareTo(other.value);
 	}
 }

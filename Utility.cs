@@ -31,6 +31,8 @@ namespace CSASM.Core{
 				"Object" => "obj",
 				"Indexer" => "^<u32>",
 				"Boolean" => "System.Boolean",
+				"ArithmeticSet" => "~set",
+				"Range" => "~range",
 				null => throw new ArgumentNullException("type.Name"),
 				_ when type.IsArray => $"~arr:{GetCSASMType(type.GetElementType())}",
 				_ => throw new Exception($"Type \"{type.Name}\" does not correspond to a valid CSASM type")
@@ -51,6 +53,9 @@ namespace CSASM.Core{
 				"f32" => typeof(FloatPrimitive),
 				"f64" => typeof(DoublePrimitive),
 				"obj" => typeof(object),
+				"^<u32>" => typeof(Indexer),
+				"~set" => typeof(ArithmeticSet),
+				"~range" => typeof(Range),
 				null => throw new ArgumentNullException("asmType"),
 				_ when asmType.StartsWith("~arr:") => Array.CreateInstance(GetCsharpType(asmType.Substring("~arr:".Length)), 0).GetType(),
 				_ when asmType.StartsWith("^") && uint.TryParse(asmType.Substring(1), out _) => typeof(Indexer),
@@ -97,8 +102,10 @@ namespace CSASM.Core{
 				ret = !AreEqual(ip, !(ip is IPrimitiveInteger) ? (IPrimitive)new FloatPrimitive(0) : (IPrimitive)new IntPrimitive(0));
 			else if(obj is bool b)
 				ret = b;
+			else if(obj is ArithmeticSet set)
+				ret = set != ArithmeticSet.EmptySet;
 			else{
-				//Strings, arrays and objects will end up here
+				//Strings, arrays, ranges and objects will end up here
 				ret = obj != null;
 			}
 

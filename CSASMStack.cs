@@ -28,8 +28,11 @@ namespace CSASM.Core{
 			stack[head] = obj;
 			head++;
 
-			if(Sandbox.reportStackUsage)
+			if(Sandbox.reportStackUsage){
+				Sandbox.verboseWriter.Flush();
+
 				Sandbox.verboseWriter.WriteLine($"[STACK] Object pushed: {FormatObject(obj)}");
+			}
 		}
 
 		public object Pop(){
@@ -39,8 +42,11 @@ namespace CSASM.Core{
 			stack[head - 1] = null;
 			head--;
 
-			if(Sandbox.reportStackUsage)
+			if(Sandbox.reportStackUsage){
+				Sandbox.verboseWriter.Flush();
+
 				Sandbox.verboseWriter.WriteLine($"[STACK] Object popped: {FormatObject(obj)}");
+			}
 
 			return obj;
 		}
