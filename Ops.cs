@@ -816,9 +816,8 @@ namespace CSASM.Core{
 			CheckVerbose("newset", true);
 
 			object arr = stack.Pop();
-			object a0;
 
-			if(arr is Array array && (Utility.AsInteger(a0 = array.GetValue(0)) != null || Utility.AsUInteger(a0) != null))
+			if(arr is Array array && typeof(IPrimitive).IsAssignableFrom(array.GetType().GetElementType()))
 				stack.Push(new ArithmeticSet(array));
 			else if(arr is Range range)
 				stack.Push(new ArithmeticSet(range));
