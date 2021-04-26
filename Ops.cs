@@ -1071,6 +1071,8 @@ namespace CSASM.Core{
 		}
 
 		public static void func_swap(){
+			CheckVerbose("swap", true);
+
 			object second = stack.Pop();
 			object first = stack.Pop();
 
