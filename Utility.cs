@@ -53,12 +53,12 @@ namespace CSASM.Core{
 				"f32" => typeof(FloatPrimitive),
 				"f64" => typeof(DoublePrimitive),
 				"obj" => typeof(object),
-				"^<u32>" => typeof(Indexer),
+				"^<u32>" => typeof(CSASMIndexer),
 				"~set" => typeof(ArithmeticSet),
-				"~range" => typeof(Range),
-				null => throw new ArgumentNullException("asmType"),
-				_ when asmType.StartsWith("~arr:") => Array.CreateInstance(GetCsharpType(asmType.Substring("~arr:".Length)), 0).GetType(),
-				_ when asmType.StartsWith("^") && uint.TryParse(asmType.Substring(1), out _) => typeof(Indexer),
+				"~range" => typeof(CSASMRange),
+				null => throw new ArgumentNullException(nameof(asmType)),
+				_ when asmType.StartsWith("~arr:") => Array.CreateInstance(GetCsharpType(asmType["~arr:".Length..]), 0).GetType(),
+				_ when asmType.StartsWith("^") && uint.TryParse(asmType[1..], out _) => typeof(CSASMIndexer),
 				_ => throw new ThrowException($"Type \"{asmType}\" did not correlate to a valid CSASM type")
 			};
 
@@ -147,7 +147,7 @@ namespace CSASM.Core{
 					if(Sandbox.verbose)
 						Sandbox.verboseWriter.WriteLine($"[CSASM] AreEqual: unsigned integer ({v}) vs signed integer ({v3})");
 
-					return (long)v >= 0 ? (long)v == v3 : false;  //Make comparisons of ulongs that wrap to the negatives always false (if the other one is long)
+					return (long)v >= 0 && (long)v == v3;  //Make comparisons of ulongs that wrap to the negatives always false (if the other one is long)
 				}
 
 				throw new StackException("Values on stack were not integers (\"comp\")");
@@ -162,7 +162,7 @@ namespace CSASM.Core{
 					if(Sandbox.verbose)
 						Sandbox.verboseWriter.WriteLine($"[CSASM] AreEqual: signed integer ({v4}) vs unsigned integer ({v3})");
 
-					return (long)v3 >= 0 ? v4 == (long)v3 : false;  //Make comparisons of ulongs that wrap to the negatives always false (if the other one is long)
+					return (long)v3 >= 0 && v4 == (long)v3;  //Make comparisons of ulongs that wrap to the negatives always false (if the other one is long)
 				}
 
 				throw new StackException("Values on stack were not integers (\"comp\")");
@@ -200,14 +200,26 @@ namespace CSASM.Core{
 				ulong bit = num & (1uL << place);
 
 				if(bit == 0 && (foundSetBit || (!foundSetBit && leadingZeroes)))
-					sb.Append("0");
+					sb.Append('0');
 				else if(bit == 1){
 					foundSetBit = true;
-					sb.Append("1");
+					sb.Append('1');
 				}
 			}
 
 			return sb.ToString();
+		}
+
+		public static Array DeepCloneArray(Array array){
+			Array ret = Array.CreateInstance(array.GetType().GetElementType(), array.Length);
+
+			for(int i = 0; i < array.Length; i++){
+				object orig = array.GetValue(i);
+				//Clone clonable types (arrays, strings, etc.), copy everything else
+				ret.SetValue((orig as ICloneable)?.Clone() ?? orig, i);
+			}
+			
+			return ret;
 		}
 
 		private static void CheckIOActiveHandle(byte id, out IOHandle handle){
@@ -377,7 +389,7 @@ namespace CSASM.Core{
 			WriteCSASMObj(writer, value);
 		}
 
-		private static object ReadArray(BinaryReader reader){
+		private static Array ReadArray(BinaryReader reader){
 			string subType = reader.ReadString();
 			if(subType.StartsWith("~arr:"))
 				throw new IOException("CSASM does not support arrays of arrays");
@@ -390,6 +402,31 @@ namespace CSASM.Core{
 				array.SetValue(ReadCSASMObj(subType, reader), i);
 
 			return array;
+		}
+
+		private static CSASMRange ReadRange(BinaryReader reader){
+			byte flags = reader.ReadByte();
+
+			int? s = null, e = null;
+			CSASMIndexer? si = null, ei = null;
+
+			if((flags & 1) != 0)
+				s = reader.ReadInt32();
+			if((flags & 2) != 0)
+				e = reader.ReadInt32();
+			if((flags & 4) != 0)
+				si = new CSASMIndexer(reader.ReadUInt32());
+			if((flags & 8) != 0)
+				ei = new CSASMIndexer(reader.ReadUInt32());
+
+			if(s != null && e != null)
+				return new CSASMRange(s.Value, e.Value);
+			if(s != null && ei != null)
+				return new CSASMRange(s.Value, ei.Value);
+			if(si != null && ei != null)
+				return new CSASMRange(si.Value, ei.Value);
+
+			throw new IOException("Invalid \"~range\" format");
 		}
 
 		private static object ReadCSASMObj(string type, BinaryReader reader)
@@ -407,8 +444,10 @@ namespace CSASM.Core{
 				"char" => reader.ReadChar(),
 				"str" => reader.ReadString(),
 				"obj" => throw new InvalidOperationException("Type \"obj\" cannot be used as the type argument for file reading"),
-				"^<u32>" => new Indexer(reader.ReadUInt32()),
+				"^<u32>" => new CSASMIndexer(reader.ReadUInt32()),
 				"~arr" => ReadArray(reader),
+				"~set" => new ArithmeticSet(ReadArray(reader)),
+				"~range" => ReadRange(reader),
 				_ => throw new IOException($"Unknown type: {type}")
 			};
 
@@ -465,7 +504,13 @@ namespace CSASM.Core{
 					writer.Write(obj as string);
 					break;
 				case "^<u32>":
-					writer.Write(((Indexer)obj).offset);
+					writer.Write(((CSASMIndexer)obj).offset);
+					break;
+				case "~set":
+					WriteCSASMObj(writer, ((ArithmeticSet)obj).ToArray());
+					break;
+				case "~range":
+					WriteRange(writer, (CSASMRange)obj);
 					break;
 				default:
 					if(type.StartsWith("~arr:"))
@@ -495,6 +540,28 @@ namespace CSASM.Core{
 				writer.Write((byte)(value > 0x7f ? (value & 0x7f) | 0x80 : value));
 				value >>= 7;
 			}while(value > 0);
+		}
+
+		private static void WriteRange(BinaryWriter writer, CSASMRange range){
+			byte b = 0;
+			if(range.start != null)
+				b |= 1;
+			if(range.end != null)
+				b |= 2;
+			if(range.startIndexer != null)
+				b |= 4;
+			if(range.endIndexer != null)
+				b |= 8;
+
+			writer.Write(b);
+			if((b & 1) != 0)
+				writer.Write(range.start.Value);
+			if((b & 2) != 0)
+				writer.Write(range.end.Value);
+			if((b & 4) != 0)
+				writer.Write(range.startIndexer.Value.offset);
+			if((b & 8) != 0)
+				writer.Write(range.endIndexer.Value.offset);
 		}
 	}
 }

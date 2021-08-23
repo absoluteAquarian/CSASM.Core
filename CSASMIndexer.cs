@@ -1,10 +1,10 @@
 ﻿using System;
 
 namespace CSASM.Core{
-	public struct Indexer{
+	public struct CSASMIndexer{
 		public uint offset;
 
-		public Indexer(uint offset){
+		public CSASMIndexer(uint offset){
 			this.offset = offset;
 		}
 

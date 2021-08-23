@@ -4,13 +4,15 @@ using System.Linq;
 namespace CSASM.Core{
 	public class CSASMStack{
 		private readonly object[] stack;
-		private int head;
+		public int Head{ get; private set; }
+		public int sp;
 		private readonly int capacity;
 
 		public CSASMStack(){
 			capacity = 1000;
 			stack = new object[1000];
-			head = 0;
+			Head = 0;
+			sp = 0;
 		}
 
 		public CSASMStack(int capacity){
@@ -19,14 +21,31 @@ namespace CSASM.Core{
 
 			this.capacity = capacity;
 			stack = new object[capacity];
-			head = 0;
+			Head = 0;
+			sp = 0;
 		}
 
 		public void Push(object obj){
-			if(head >= capacity)
+			if(Head >= capacity)
 				throw new StackException("Stack overflow detected. Cannot push more objects to the stack.");
-			stack[head] = obj;
-			head++;
+
+			if(sp == Head){
+				//Locations are in sync.  Just replace the topmost element
+				stack[Head] = obj;
+				sp++;
+				Head++;
+			}else if(sp < Head){
+				//Locations are not in sync.  Shift everything above $sp and below $head (everything else past $head is just null anyway)
+				object[] arr = new object[Head - sp];
+				Array.Copy(stack, sp, arr, 0, arr.Length);
+
+				stack[sp] = obj;
+				sp++;
+				Head++;
+
+				Array.Copy(arr, 0, stack, sp, arr.Length);
+			}else
+				throw new StackException($"Stack pointer was in an invalid location ($sp: {sp}, $head: {Head})");
 
 			if(Sandbox.reportStackUsage){
 				Sandbox.verboseWriter.Flush();
@@ -36,11 +55,30 @@ namespace CSASM.Core{
 		}
 
 		public object Pop(){
-			if(head <= 0)
+			if(Head <= 0)
 				throw new StackException("Stack underflow detected. Cannot pop more objects from the stack.");
-			object obj = stack[head - 1];
-			stack[head - 1] = null;
-			head--;
+
+			object obj;
+			if(sp == Head){
+				//Locations are in sync.  Get the topmost element and null its index
+				obj = stack[Head - 1];
+				stack[Head - 1] = null;
+				sp--;
+				Head--;
+			}else if(sp < Head && sp > 0){
+				obj = stack[sp - 1];
+				sp--;
+				Head--;
+
+				object[] arr = new object[Head - sp];
+				Array.Copy(stack, sp, arr, 0, arr.Length);
+
+				Array.Copy(arr, 0, stack, sp, arr.Length);
+
+				//Null the extra copy at the end
+				stack[Head + 1] = null;
+			}else
+				throw new StackException($"Stack pointer was in an invalid location ($sp: {sp}, $head: {Head})");
 
 			if(Sandbox.reportStackUsage){
 				Sandbox.verboseWriter.Flush();
@@ -51,7 +89,7 @@ namespace CSASM.Core{
 			return obj;
 		}
 
-		public object Peek() => head == 0 ? throw new StackException("Stack does not contain any values") : stack[head - 1];
+		public object Peek() => Head == 0 ? throw new StackException("Stack does not contain any values") : stack[Head - 1];
 
 		public static string FormatArray(Array a){
 			if(a.Length == 0)
@@ -77,9 +115,9 @@ namespace CSASM.Core{
 		}
 
 		public override string ToString()
-			=> head == 0
+			=> Head == 0
 				? "[ <empty> ]"
-				: "[ " + string.Join(", ", stack.Where((o, i) => i < head).Select(o => FormatObject(o))) + " ]";
+				: "[ " + string.Join(", ", stack.Where((o, i) => i < Head).Select(o => FormatObject(o))) + " ]";
 
 		public static string FormatObject(object o)
 			=> o is string s

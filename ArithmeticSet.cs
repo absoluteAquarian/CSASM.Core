@@ -6,7 +6,7 @@ namespace CSASM.Core{
 	public struct ArithmeticSet{
 		private readonly IntPrimitive[] set;
 
-		public static readonly ArithmeticSet EmptySet = new ArithmeticSet(new IntPrimitive[0]);
+		public static readonly ArithmeticSet EmptySet = new ArithmeticSet(Array.Empty<IntPrimitive>());
 
 		public ArithmeticSet(Array set){
 			Type type;
@@ -25,7 +25,7 @@ namespace CSASM.Core{
 				throw new ArithmeticException("Sets can only be initialized via an array of integers");
 		}
 
-		public ArithmeticSet(Range range){
+		public ArithmeticSet(CSASMRange range){
 			if(range.startIndexer != null || range.endIndexer != null)
 				throw new ArgumentException("Sets cannot be initialized with ranges that use indexer bounds");
 
@@ -83,7 +83,7 @@ namespace CSASM.Core{
 
 		public bool IsDisjoint(ArithmeticSet other) => this.Intersection(other).set.Length == EmptySet.set.Length;
 
-		private IntPrimitive[] ResolveSet(IntPrimitive[] collection){
+		private static IntPrimitive[] ResolveSet(IntPrimitive[] collection){
 			if(collection.Length < 2)
 				return (IntPrimitive[])collection.Clone();
 

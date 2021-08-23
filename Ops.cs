@@ -26,6 +26,13 @@ namespace CSASM.Core{
 			set => flags = (byte)(value ? flags | 0x04 : flags & ~0x04);
 		}
 
+		public static IntPrimitive SP{
+			get => new IntPrimitive(stack.sp);
+			set => stack.sp = (int)((IPrimitive)value).Value;
+		}
+
+		public static IntPrimitive Head => new IntPrimitive(stack.Head);
+
 		private static void CheckVerbose(string instruction, bool beginningOfInstr){
 			if(Sandbox.verbose){
 				Sandbox.verboseWriter.Flush();
@@ -67,7 +74,21 @@ namespace CSASM.Core{
 					stack.Push((first is string s1 ? s1 : (first is char c1 ? (object)c1 : CSASMStack.FormatObject(first))) + s2);
 			}else if(first is ArithmeticSet set && second is ArithmeticSet set2)
 				stack.Push(set.Union(set2));
-			else
+			else if(first is ArithmeticSet set3 && (second is IntPrimitive[] || second is IntPrimitive)){
+				if(!(second is IntPrimitive[] arr2))
+					arr2 = new IntPrimitive[]{ (IntPrimitive)second };
+
+				if(arr2.Length > 0){
+					IntPrimitive[] arr = set3.ToArray();
+
+					IntPrimitive[] combined = new IntPrimitive[arr.Length + arr2.Length];
+					Array.Copy(arr, 0, combined, 0, arr.Length);
+					Array.Copy(arr2, 0, combined, arr.Length, arr2.Length);
+
+					stack.Push(new ArithmeticSet(combined));
+				}else
+					stack.Push(set3);  //No new items.  Just push the original set back to the stack
+			}else
 				throw new StackException("add", first, second);
 		}
 
@@ -181,6 +202,8 @@ namespace CSASM.Core{
 				DoublePrimitive _ => 8,
 				Array arr =>         ArrayBytes(arr),
 				ArithmeticSet set => set.ToArray().Length * 4,
+				CSASMRange _ =>           16,
+				CSASMIndexer _ =>         4,
 				null => throw new StackException("bytes", obj),
 				_ => throw new StackException("bytes", obj)
 			};
@@ -234,7 +257,7 @@ namespace CSASM.Core{
 			}else if(obj is ArithmeticSet set && obj2 is ArithmeticSet set2){
 				if(set == set2)
 					Comparison = true;
-			}else if(obj is Range range && obj2 is Range range2){
+			}else if(obj is CSASMRange range && obj2 is CSASMRange range2){
 				if(range == range2)
 					Comparison = true;
 			}else{
@@ -342,10 +365,10 @@ namespace CSASM.Core{
 					stack.Push(s.ToCharArray());
 				else
 					throw new StackException("conv", obj);
-			}else if(type == "~arr" && (obj is ArithmeticSet || obj is Range)){
+			}else if(type == "~arr" && (obj is ArithmeticSet || obj is CSASMRange)){
 				if(obj is ArithmeticSet set)
 					stack.Push(set.ToArray());
-				else if(obj is Range range){
+				else if(obj is CSASMRange range){
 					//Ranges with indexers pop an additional value off of the stack to set the indexer
 					object source = range.startIndexer != null || range.endIndexer != null ? stack.Pop() : null;
 
@@ -357,7 +380,7 @@ namespace CSASM.Core{
 				object value = ip.Value;
 				if(ip is UintPrimitive){
 					if(type == "^<u32>")
-						stack.Push(new Indexer((uint)value));
+						stack.Push(new CSASMIndexer((uint)value));
 					else
 						throw new StackException("conv", obj);
 				}else{
@@ -367,8 +390,8 @@ namespace CSASM.Core{
 						stack.Push(prim);
 					}catch(InvalidCastException){
 						throw new StackException("conv", obj);
-					}catch(ThrowException tex){
-						throw tex;
+					}catch(ThrowException){
+						throw;
 					}catch{
 						throw new StackException("conv", obj);
 					}
@@ -704,7 +727,7 @@ namespace CSASM.Core{
 			stack.Push(array.GetValue(index));
 		}
 
-		public static void func_ldelem(Indexer indexer){
+		public static void func_ldelem(CSASMIndexer indexer){
 			object arr = stack.Pop();
 
 			if(!arr.GetType().IsArray)
@@ -789,7 +812,7 @@ namespace CSASM.Core{
 			object obj = stack.Pop();
 
 			if(obj is UintPrimitive ip)
-				stack.Push(new Indexer((uint)(ip as IPrimitive).Value));
+				stack.Push(new CSASMIndexer((uint)(ip as IPrimitive).Value));
 			else
 				throw new StackException("newindex", obj);
 		}
@@ -800,14 +823,14 @@ namespace CSASM.Core{
 			object end = stack.Pop();
 			object start = stack.Pop();
 
-			if(start is Indexer && end is IntPrimitive)
+			if(start is CSASMIndexer && end is IntPrimitive)
 				throw new StackException("newrange", start, end);
 			else if(start is IntPrimitive ip && end is IntPrimitive ip2)
-				stack.Push(new Range((int)(ip as IPrimitive).Value, (int)(ip2 as IPrimitive).Value));
-			else if(start is IntPrimitive ip3 && end is Indexer idx)
-				stack.Push(new Range((int)(ip3 as IPrimitive).Value, idx));
-			else if(start is Indexer idx2 && end is Indexer idx3)
-				stack.Push(new Range(idx2, idx3));
+				stack.Push(new CSASMRange((int)(ip as IPrimitive).Value, (int)(ip2 as IPrimitive).Value));
+			else if(start is IntPrimitive ip3 && end is CSASMIndexer idx)
+				stack.Push(new CSASMRange((int)(ip3 as IPrimitive).Value, idx));
+			else if(start is CSASMIndexer idx2 && end is CSASMIndexer idx3)
+				stack.Push(new CSASMRange(idx2, idx3));
 			else
 				throw new StackException("newrange", start, end);
 		}
@@ -819,7 +842,7 @@ namespace CSASM.Core{
 
 			if(arr is Array array && typeof(IPrimitive).IsAssignableFrom(array.GetType().GetElementType()))
 				stack.Push(new ArithmeticSet(array));
-			else if(arr is Range range)
+			else if(arr is CSASMRange range)
 				stack.Push(new ArithmeticSet(range));
 			else
 				throw new StackException("newset", arr);
@@ -897,6 +920,27 @@ namespace CSASM.Core{
 				throw new StackException("rem", first, second);
 		}
 
+		public static void func_rend(){
+			CheckVerbose("rend", true);
+
+			object obj = stack.Pop();
+
+			if(obj is CSASMRange range){
+				if(range.start != null)
+					stack.Push(new IntPrimitive(range.start.Value));
+				else if(range.startIndexer != null){
+					object source = stack.Pop();
+
+					if(source is Array || source is string)
+						stack.Push(new IntPrimitive(range.startIndexer.Value.GetIndex(source)));
+					else
+						throw new StackException("rend", obj, source);
+				}else
+					throw new FormatException("Range instance on stack had an invalid state");
+			}else
+				throw new StackException("rend", obj);
+		}
+
 		public static void func_rol(){
 			CheckVerbose("rol", true);
 
@@ -934,6 +978,27 @@ namespace CSASM.Core{
 				throw new StackException("ror", obj);
 		}
 
+		public static void func_rstt(){
+			CheckVerbose("rstt", true);
+
+			object obj = stack.Pop();
+
+			if(obj is CSASMRange range){
+				if(range.end != null)
+					stack.Push(new IntPrimitive(range.end.Value));
+				else if(range.endIndexer != null){
+					object source = stack.Pop();
+
+					if(source is Array || source is string)
+						stack.Push(new IntPrimitive(range.endIndexer.Value.GetIndex(source)));
+					else
+						throw new StackException("rstt", obj, source);
+				}else
+					throw new FormatException("Range instance on stack had an invalid state");
+			}else
+				throw new StackException("rstt", obj);
+		}
+
 		public static void func_stelem(int index){
 			CheckVerbose("stelem", true);
 			if(Sandbox.verbose)
@@ -961,7 +1026,7 @@ namespace CSASM.Core{
 			array.SetValue(obj, index);
 		}
 
-		public static void func_stelem(Indexer indexer){
+		public static void func_stelem(CSASMIndexer indexer){
 			object obj = stack.Pop();
 			object arr = stack.Pop();
 
@@ -1012,7 +1077,7 @@ namespace CSASM.Core{
 			object str;
 
 			//If "end" is a range, then the next value on the stack will be a string
-			if(end is Range range){
+			if(end is CSASMRange range){
 				str = stack.Pop();
 
 				if(str is string s2){
@@ -1021,7 +1086,7 @@ namespace CSASM.Core{
 					if(posStart > posEnd)
 						throw new StackException("Range argument for instruction \"substr\" was invalid");
 
-					stack.Push(s2.Substring(posStart, posEnd - posStart));
+					stack.Push(s2[posStart..posEnd]);
 					return;
 				}else
 					throw new StackException("substr", str, end);
@@ -1036,15 +1101,15 @@ namespace CSASM.Core{
 					i = (int)((IPrimitive)ip).Value;
 					if(end is IntPrimitive ip2)
 						e = (int)((IPrimitive)ip2).Value;
-					else if(end is Indexer id2)
+					else if(end is CSASMIndexer id2)
 						e = id2.GetIndex(s);
 					else
 						throw new StackException("substr", end);
-				}else if(start is Indexer id){
+				}else if(start is CSASMIndexer id){
 					i = id.GetIndex(s);
 					if(end is IntPrimitive ip2)
 						e = (int)((IPrimitive)ip2).Value;
-					else if(end is Indexer id2)
+					else if(end is CSASMIndexer id2)
 						e = id2.GetIndex(s);
 					else
 						throw new StackException("substr", end);
@@ -1064,7 +1129,7 @@ namespace CSASM.Core{
 				if(i == e)
 					stack.Push(string.Empty);
 				else
-					stack.Push(s.Substring(i, e - i));
+					stack.Push(s[i..e]);
 			}else
 				throw new StackException("substr", str);
 		}

@@ -71,7 +71,7 @@ namespace CSASM.Core{
 
 				string message = ex.ToString();
 				//Remove the part saying the name since it's said below
-				message = message.Substring(message.IndexOf(":") + 2);
+				message = message[(message.IndexOf(":") + 2)..];
 				Console.WriteLine($"{ex.GetType().Name} thrown in compiled code:\n   {message}");
 			}finally{
 				//No matter what, the file handles need to be disposed of

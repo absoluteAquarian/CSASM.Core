@@ -1,11 +1,11 @@
 ﻿using System;
 
 namespace CSASM.Core{
-	public struct Range{
+	public struct CSASMRange{
 		public readonly int? start, end;
-		public readonly Indexer? startIndexer, endIndexer;
+		public readonly CSASMIndexer? startIndexer, endIndexer;
 
-		public Range(int start, int end){
+		public CSASMRange(int start, int end){
 			if(end < start)
 				throw new ArithmeticException("Range end value cannot be less than range start value");
 
@@ -15,7 +15,7 @@ namespace CSASM.Core{
 			endIndexer = null;
 		}
 
-		public Range(int start, Indexer end){
+		public CSASMRange(int start, CSASMIndexer end){
 			if(start < 0)
 				throw new ArithmeticException("Range start value cannot be less than zero when using an end indexer");
 
@@ -25,7 +25,7 @@ namespace CSASM.Core{
 			endIndexer = end;
 		}
 
-		public Range(Indexer start, Indexer end){
+		public CSASMRange(CSASMIndexer start, CSASMIndexer end){
 			if(start.offset < end.offset)
 				throw new ArithmeticException("Range end indexer offset cannot be less than range start indexer offset");
 
@@ -54,11 +54,11 @@ namespace CSASM.Core{
 			end = this.end ?? endIndexer?.GetIndex(source) ?? throw new ArithmeticException("Range object did not have an end location");
 		}
 
-		public static bool operator ==(Range first, Range second) => first.start == second.start && first.end == second.end;
+		public static bool operator ==(CSASMRange first, CSASMRange second) => first.start == second.start && first.end == second.end;
 
-		public static bool operator !=(Range first, Range second) => first.start != second.start || first.end == second.end;
+		public static bool operator !=(CSASMRange first, CSASMRange second) => first.start != second.start || first.end == second.end;
 
-		public override bool Equals(object obj) => obj is Range range && this == range;
+		public override bool Equals(object obj) => obj is CSASMRange range && this == range;
 
 		public override int GetHashCode() => base.GetHashCode();
 
