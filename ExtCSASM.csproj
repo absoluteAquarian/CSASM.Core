@@ -5,7 +5,7 @@
     <RootNamespace>CSASM.Core</RootNamespace>
     <AssemblyName>CSASM.Core</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>9.0</LangVersion>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -27,7 +27,7 @@
   </ItemGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>1701;1702;CA2211</NoWarn>
+    <NoWarn>1701;1702;CA2211;IDE0090</NoWarn>
   </PropertyGroup>
   <PropertyGroup>
     <PostBuildEvent>copy.bat</PostBuildEvent>

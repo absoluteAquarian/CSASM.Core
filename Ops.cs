@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Threading;
 
 namespace CSASM.Core{
 #pragma warning disable IDE1006
@@ -32,6 +33,10 @@ namespace CSASM.Core{
 		}
 
 		public static IntPrimitive Head => new IntPrimitive(stack.Head);
+
+		public static DateTimeRef DateTimeNow => new DateTimeRef();
+
+		public static readonly DateTimeRef DateTimeEpoch = new DateTimeRef(DateTime.UnixEpoch);
 
 		private static void CheckVerbose(string instruction, bool beginningOfInstr){
 			if(Sandbox.verbose){
@@ -75,7 +80,7 @@ namespace CSASM.Core{
 			}else if(first is ArithmeticSet set && second is ArithmeticSet set2)
 				stack.Push(set.Union(set2));
 			else if(first is ArithmeticSet set3 && (second is IntPrimitive[] || second is IntPrimitive)){
-				if(!(second is IntPrimitive[] arr2))
+				if(second is not IntPrimitive[] arr2)
 					arr2 = new IntPrimitive[]{ (IntPrimitive)second };
 
 				if(arr2.Length > 0){
@@ -188,7 +193,7 @@ namespace CSASM.Core{
 
 		private static int ObjBytes(object obj){
 			return obj switch{
-				string s =>          s.Length,
+				string s =>          s.Length * 2,
 				char _ =>            2,
 				BytePrimitive _ =>   1,
 				SbytePrimitive _ =>  1,
@@ -365,7 +370,7 @@ namespace CSASM.Core{
 					stack.Push(s.ToCharArray());
 				else
 					throw new StackException("conv", obj);
-			}else if(type == "~arr" && (obj is ArithmeticSet || obj is CSASMRange)){
+			}else if(type == "~arr" && (obj is ArithmeticSet || obj is CSASMRange || obj is CSASMList)){
 				if(obj is ArithmeticSet set)
 					stack.Push(set.ToArray());
 				else if(obj is CSASMRange range){
@@ -373,7 +378,8 @@ namespace CSASM.Core{
 					object source = range.startIndexer != null || range.endIndexer != null ? stack.Pop() : null;
 
 					stack.Push(range.ToArray(source));
-				}
+				}else if(obj is CSASMList list)
+					stack.Push(list.ToArray());
 			}else if(type.StartsWith("~arr:"))
 				throw new StackException("Array instances cannot be converted using the \"conv\" operator");
 			else if(obj is IPrimitive ip){
@@ -535,6 +541,267 @@ namespace CSASM.Core{
 				throw new StackException("div", first, second);
 		}
 
+		#region DateTimeRef funcs
+		#region Add Time
+		public static void func_dtadd_d(){
+			CheckVerbose("dtadd.d", true);
+
+			object days = stack.Pop();
+			object date = stack.Pop();
+
+			if(date is DateTimeRef dateRef && days is DoublePrimitive dp)
+				dateRef.AddDays((double)((IPrimitive)dp).Value);
+			else
+				throw new StackException("dtadd.d", date, days);
+		}
+
+		public static void func_dtadd_h(){
+			CheckVerbose("dtadd.h", true);
+
+			object hours = stack.Pop();
+			object date = stack.Pop();
+
+			if(date is DateTimeRef dateRef && hours is DoublePrimitive dp)
+				dateRef.AddHours((double)((IPrimitive)dp).Value);
+			else
+				throw new StackException("dtadd.h", date, hours);
+		}
+
+		public static void func_dtadd_mi(){
+			CheckVerbose("dtadd.mi", true);
+
+			object mins = stack.Pop();
+			object date = stack.Pop();
+
+			if(date is DateTimeRef dateRef && mins is DoublePrimitive dp)
+				dateRef.AddMinutes((double)((IPrimitive)dp).Value);
+			else
+				throw new StackException("dtadd.mi", date, mins);
+		}
+
+		public static void func_dtadd_ms(){
+			CheckVerbose("dtadd.ms", true);
+
+			object ms = stack.Pop();
+			object date = stack.Pop();
+
+			if(date is DateTimeRef dateRef && ms is DoublePrimitive dp)
+				dateRef.AddMilliseconds((double)((IPrimitive)dp).Value);
+			else
+				throw new StackException("dtadd.ms", date, ms);
+		}
+
+		public static void func_dtadd_mt(){
+			CheckVerbose("dtadd.mt", true);
+
+			object months = stack.Pop();
+			object date = stack.Pop();
+
+			if(date is DateTimeRef dateRef && months is IntPrimitive ip)
+				dateRef.AddMonths((int)((IPrimitive)ip).Value);
+			else
+				throw new StackException("dtadd.mt", date, months);
+		}
+
+		public static void func_dtadd_t(){
+			CheckVerbose("dtadd.t", true);
+
+			object ticks = stack.Pop();
+			object date = stack.Pop();
+
+			if(date is DateTimeRef dateRef && ticks is LongPrimitive lp)
+				dateRef.AddTicks((long)((IPrimitive)lp).Value);
+			else
+				throw new StackException("dtadd.t", date, ticks);
+		}
+
+		public static void func_dtadd_s(){
+			CheckVerbose("dtadd.s", true);
+
+			object secs = stack.Pop();
+			object date = stack.Pop();
+
+			if(date is DateTimeRef dateRef && secs is DoublePrimitive dp)
+				dateRef.AddSeconds((double)((IPrimitive)dp).Value);
+			else
+				throw new StackException("dtadd.s", date, secs);
+		}
+
+		public static void func_dtadd_y(){
+			CheckVerbose("dtadd.y", true);
+
+			object years = stack.Pop();
+			object date = stack.Pop();
+
+			if(date is DateTimeRef dateRef && years is IntPrimitive ip)
+				dateRef.AddYears((int)((IPrimitive)ip).Value);
+			else
+				throw new StackException("dtadd.y", date, years);
+		}
+		#endregion
+
+		public static void func_dtfmt(){
+			CheckVerbose("dtfmt", true);
+
+			object fmt = stack.Pop();
+			object date = stack.Pop();
+
+			if(date is DateTimeRef dateRef && fmt is string s)
+				stack.Push(dateRef.Date.ToString(s));
+			else
+				throw new StackException("dtfmt", date, fmt);
+		}
+
+		#region New Instances
+		public static void func_dtnew_t(){
+			CheckVerbose("dtnew.t", true);
+
+			object ticks = stack.Pop();
+
+			if(ticks is not LongPrimitive lp)
+				throw new StackException("dtnew.t", ticks);
+
+			stack.Push(new DateTimeRef((long)((IPrimitive)lp).Value));
+		}
+
+		public static void func_dtnew_ymd(){
+			CheckVerbose("dtnew.ymd", true);
+
+			object day = stack.Pop();
+			object month = stack.Pop();
+			object year = stack.Pop();
+
+			if(year is not IntPrimitive ip || month is not IntPrimitive ip2 || day is not IntPrimitive ip3)
+				throw new StackException("dtnew.ymd", year, month, day);
+
+			stack.Push(new DateTimeRef((int)((IPrimitive)ip).Value, (int)((IPrimitive)ip2).Value, (int)((IPrimitive)ip3).Value));
+		}
+
+		public static void func_dtnew_ymdhms(){
+			CheckVerbose("dtnew.ymdhms", true);
+
+			object second = stack.Pop();
+			object minute = stack.Pop();
+			object hour = stack.Pop();
+			object day = stack.Pop();
+			object month = stack.Pop();
+			object year = stack.Pop();
+
+			if(year is not IntPrimitive ip || month is not IntPrimitive ip2 || day is not IntPrimitive ip3 || hour is not IntPrimitive ip4 || minute is not IntPrimitive ip5 || second is not IntPrimitive ip6)
+				throw new StackException("dtnew.ymd", year, month, day);
+
+			stack.Push(new DateTimeRef((int)((IPrimitive)ip).Value, (int)((IPrimitive)ip2).Value, (int)((IPrimitive)ip3).Value, (int)((IPrimitive)ip4).Value, (int)((IPrimitive)ip5).Value, (int)((IPrimitive)ip6).Value));
+		}
+
+		public static void func_dtnew_ymdhmsm(){
+			CheckVerbose("dtnew.ymdhmsm", true);
+
+			object millisecond = stack.Pop();
+			object second = stack.Pop();
+			object minute = stack.Pop();
+			object hour = stack.Pop();
+			object day = stack.Pop();
+			object month = stack.Pop();
+			object year = stack.Pop();
+
+			if(year is not IntPrimitive ip || month is not IntPrimitive ip2 || day is not IntPrimitive ip3 || hour is not IntPrimitive ip4 || minute is not IntPrimitive ip5 || second is not IntPrimitive ip6 || millisecond is not IntPrimitive ip7)
+				throw new StackException("dtnew.ymd", year, month, day);
+
+			stack.Push(new DateTimeRef((int)((IPrimitive)ip).Value, (int)((IPrimitive)ip2).Value, (int)((IPrimitive)ip3).Value, (int)((IPrimitive)ip4).Value, (int)((IPrimitive)ip5).Value, (int)((IPrimitive)ip6).Value, (int)((IPrimitive)ip7).Value));
+		}
+		#endregion
+
+		#region Value Accessing
+		public static void func_dt_day(){
+			CheckVerbose("dt.day", true);
+
+			object date = stack.Pop();
+
+			if(date is not DateTimeRef dateRef)
+				throw new StackException("dt.day", date);
+
+			stack.Push(new IntPrimitive(dateRef.Date.Day));
+		}
+
+		public static void func_dt_hour(){
+			CheckVerbose("dt.hour", true);
+
+			object date = stack.Pop();
+
+			if(date is not DateTimeRef dateRef)
+				throw new StackException("dt.hour", date);
+
+			stack.Push(new IntPrimitive(dateRef.Date.Hour));
+		}
+
+		public static void func_dt_min(){
+			CheckVerbose("dt.min", true);
+
+			object date = stack.Pop();
+
+			if(date is not DateTimeRef dateRef)
+				throw new StackException("dt.min", date);
+
+			stack.Push(new IntPrimitive(dateRef.Date.Minute));
+		}
+
+		public static void func_dt_month(){
+			CheckVerbose("dt.month", true);
+
+			object date = stack.Pop();
+
+			if(date is not DateTimeRef dateRef)
+				throw new StackException("dt.month", date);
+
+			stack.Push(new IntPrimitive(dateRef.Date.Month));
+		}
+
+		public static void func_dt_msec(){
+			CheckVerbose("dt.msec", true);
+
+			object date = stack.Pop();
+
+			if(date is not DateTimeRef dateRef)
+				throw new StackException("dt.msec", date);
+
+			stack.Push(new IntPrimitive(dateRef.Date.Millisecond));
+		}
+
+		public static void func_dt_sec(){
+			CheckVerbose("dt.sec", true);
+
+			object date = stack.Pop();
+
+			if(date is not DateTimeRef dateRef)
+				throw new StackException("dt.sec", date);
+
+			stack.Push(new IntPrimitive(dateRef.Date.Second));
+		}
+
+		public static void func_dt_ticks(){
+			CheckVerbose("dt.ticks", true);
+
+			object date = stack.Pop();
+
+			if(date is not DateTimeRef dateRef)
+				throw new StackException("dt.ticks", date);
+
+			stack.Push(new LongPrimitive(dateRef.Date.Ticks));
+		}
+
+		public static void func_dt_year(){
+			CheckVerbose("dt.year", true);
+
+			object date = stack.Pop();
+
+			if(date is not DateTimeRef dateRef)
+				throw new StackException("dt.year", date);
+
+			stack.Push(new IntPrimitive(dateRef.Date.Year));
+		}
+		#endregion
+		#endregion
+
 		public static void func_dup(){
 			object obj = stack.Peek();
 			if(obj is string s)
@@ -643,18 +910,13 @@ namespace CSASM.Core{
 				else
 					throw new StackException("index", source, find);
 			}else if(source is Array a){
-				if(source.GetType().GetElementType() == find.GetType()){
-					for(int i = 0; i < a.Length; i++){
-						if(a.GetValue(i).Equals(find)){
-							stack.Push(new IntPrimitive(i));
-							return;
-						}
-					}
-
-					stack.Push(new IntPrimitive(-1));
-				}else
+				if(source.GetType().GetElementType() == find.GetType())
+					stack.Push(new IntPrimitive(Array.IndexOf(a, find)));
+				else
 					throw new StackException("index", source, find);
-			}else
+			}else if(source is CSASMList list)
+				stack.Push(new IntPrimitive(list.IndexOf(find)));
+			else
 				throw new StackException("index", source);
 		}
 
@@ -674,7 +936,7 @@ namespace CSASM.Core{
 			CheckVerbose("interp", true);
 
 			object obj2 = stack.Pop();
-			if(!(obj2 is object[] args))
+			if(obj2 is not object[] args)
 				throw new StackException("interp", obj2);
 
 			//Perform the interpolation
@@ -716,21 +978,24 @@ namespace CSASM.Core{
 
 			object arr = stack.Pop();
 
-			if(!arr.GetType().IsArray)
+			if(arr is Array array){
+				if(index >= array.Length)
+					throw new StackException($"Index ({index}) was outside the range of valid entries in the array (0..{array.Length - 1})");
+
+				stack.Push(array.GetValue(index));
+			}else if(arr is CSASMList list){
+				if(index >= list.Capacity)
+					throw new StackException($"Index ({index}) was outside the range of valid entries in the list (0..{list.Capacity - 1})");
+
+				stack.Push(list[index]);
+			}else
 				throw new StackException("ldelem", arr);
-
-			Array array = arr as Array;
-
-			if(index >= array.Length)
-				throw new StackException($"Index ({index}) was outside the range of valid entries in the array (0..{array.Length - 1})");
-
-			stack.Push(array.GetValue(index));
 		}
 
 		public static void func_ldelem(CSASMIndexer indexer){
 			object arr = stack.Pop();
 
-			if(!arr.GetType().IsArray)
+			if(arr is not Array && arr is not CSASMList)
 				throw new StackException("ldelem", arr);
 
 			int offset = indexer.GetIndex(arr);
@@ -815,6 +1080,23 @@ namespace CSASM.Core{
 				stack.Push(new CSASMIndexer((uint)(ip as IPrimitive).Value));
 			else
 				throw new StackException("newindex", obj);
+		}
+
+		public static void func_newlist(){
+			CheckVerbose("newlist", true);
+
+			object obj = stack.Pop();
+
+			if(obj is IntPrimitive ip)
+				stack.Push(new CSASMList((int)(ip as IPrimitive).Value));
+			else
+				throw new StackException("newlist", obj);
+		}
+
+		public static void func_newlist_z(){
+			CheckVerbose("newlist.z", true);
+
+			stack.Push(new CSASMList());
 		}
 
 		public static void func_newrange(){
@@ -1008,22 +1290,25 @@ namespace CSASM.Core{
 			object arr = stack.Pop();
 
 			Type type = obj.GetType();
-			Type arrType = arr.GetType();
 
-			if(!arrType.IsArray)
+			if(arr is Array array){
+				Type arrType = arr.GetType();
+				Type arrElemType = arrType.GetElementType();
+
+				if(type != arrElemType && !arrElemType.IsAssignableFrom(type))
+					throw new StackException($"Instruction \"stelem\" had invalid values on the stack before it ({Utility.GetCSASMType(type)}, {Utility.GetCSASMType(arrType)})");
+
+				if(index >= array.Length)
+					throw new StackException($"Index ({index}) was outside the range of valid entries in the array (0..{array.Length - 1})");
+
+				array.SetValue(obj, index);
+			}else if(arr is CSASMList list){
+				if(index < 0)
+					throw new StackException($"Index was negative");
+
+				list[index] = obj;
+			}else
 				throw new StackException("stelem", arr);
-			
-			Type arrElemType = arrType.GetElementType();
-
-			if(type != arrElemType && !arrElemType.IsAssignableFrom(type))
-				throw new StackException($"Instruction \"stelem\" had invalid values on the stack before it ({type.Name}, {arrType.Name})");
-
-			Array array = arr as Array;
-
-			if(index >= array.Length)
-				throw new StackException($"Index ({index}) was outside the range of valid entries in the array (0..{array.Length - 1})");
-
-			array.SetValue(obj, index);
 		}
 
 		public static void func_stelem(CSASMIndexer indexer){
@@ -1033,13 +1318,8 @@ namespace CSASM.Core{
 			Type type = obj.GetType();
 			Type arrType = arr.GetType();
 
-			if(!arrType.IsArray)
-				throw new StackException("stelem", arr);
-			
-			Type arrElemType = arrType.GetElementType();
-
-			if(type != arrElemType && !arrElemType.IsAssignableFrom(type))
-				throw new StackException($"Instruction \"stelem\" had invalid values on the stack before it ({type.Name}, {arrType.Name})");
+			if(arr is not Array && arr is not CSASMList)
+				throw new StackException($"Instruction \"stelem\" had invalid values on the stack before it ({Utility.GetCSASMType(type)}, {Utility.GetCSASMType(arrType)})");
 
 			int offset = indexer.GetIndex(arr);
 			stack.Push(arr);
@@ -1156,6 +1436,17 @@ namespace CSASM.Core{
 				throw new StackException("type", obj);
 
 			stack.Push(Utility.GetCSASMType(obj.GetType()));
+		}
+
+		public static void func_wait(){
+			CheckVerbose("wait", true);
+
+			object ms = stack.Pop();
+
+			if(ms is not IntPrimitive ip)
+				throw new StackException("wait", ms);
+
+			Thread.Sleep((int)((IPrimitive)ip).Value);
 		}
 
 		public static void func_xor(){

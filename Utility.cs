@@ -33,6 +33,7 @@ namespace CSASM.Core{
 				"Boolean" => "System.Boolean",
 				"ArithmeticSet" => "~set",
 				"Range" => "~range",
+				"CSASMList" => "~list",
 				null => throw new ArgumentNullException("type.Name"),
 				_ when type.IsArray => $"~arr:{GetCSASMType(type.GetElementType())}",
 				_ => throw new Exception($"Type \"{type.Name}\" does not correspond to a valid CSASM type")
@@ -56,6 +57,7 @@ namespace CSASM.Core{
 				"^<u32>" => typeof(CSASMIndexer),
 				"~set" => typeof(ArithmeticSet),
 				"~range" => typeof(CSASMRange),
+				"~list" => typeof(CSASMList),
 				null => throw new ArgumentNullException(nameof(asmType)),
 				_ when asmType.StartsWith("~arr:") => Array.CreateInstance(GetCsharpType(asmType["~arr:".Length..]), 0).GetType(),
 				_ when asmType.StartsWith("^") && uint.TryParse(asmType[1..], out _) => typeof(CSASMIndexer),
@@ -429,6 +431,19 @@ namespace CSASM.Core{
 			throw new IOException("Invalid \"~range\" format");
 		}
 
+		private static CSASMList ReadList(BinaryReader reader){
+			int capacity = Read7BitEncodedInt(reader);
+
+			CSASMList list = new CSASMList(capacity);
+
+			for(int i = 0; i < capacity; i++){
+				string elemType = reader.ReadString();
+				list[i] = ReadCSASMObj(elemType, reader);
+			}
+
+			return list;
+		}
+
 		private static object ReadCSASMObj(string type, BinaryReader reader)
 			=> type switch{
 				"i8" => new SbytePrimitive(reader.ReadSByte()),
@@ -448,6 +463,7 @@ namespace CSASM.Core{
 				"~arr" => ReadArray(reader),
 				"~set" => new ArithmeticSet(ReadArray(reader)),
 				"~range" => ReadRange(reader),
+				"~list" => ReadList(reader),
 				_ => throw new IOException($"Unknown type: {type}")
 			};
 
@@ -512,6 +528,9 @@ namespace CSASM.Core{
 				case "~range":
 					WriteRange(writer, (CSASMRange)obj);
 					break;
+				case "~list":
+					WriteList(writer, (CSASMList)obj);
+					break;
 				default:
 					if(type.StartsWith("~arr:"))
 						WriteArray(writer, obj);
@@ -562,6 +581,16 @@ namespace CSASM.Core{
 				writer.Write(range.startIndexer.Value.offset);
 			if((b & 8) != 0)
 				writer.Write(range.endIndexer.Value.offset);
+		}
+
+		private static void WriteList(BinaryWriter writer, CSASMList list){
+			Write7BitEncodedInt(writer, list.Capacity);
+
+			for(int i = 0; i < list.Capacity; i++){
+				object obj = list[i];
+				writer.Write(GetCSASMType(obj.GetType()));
+				WriteCSASMObj(writer, obj);
+			}
 		}
 	}
 }

@@ -13,8 +13,10 @@ namespace CSASM.Core{
 				return a.Length - (int)offset;
 			else if(obj is string s)
 				return s.Length - (int)offset;
+			else if(obj is CSASMList list)
+				return list.Capacity - (int)offset;
 
-			throw new ArgumentException("Object did not refer to an array or string instance.");
+			throw new ArgumentException("Object did not refer to an array, string or list instance.");
 		}
 
 		public override string ToString() => $"^{offset}";

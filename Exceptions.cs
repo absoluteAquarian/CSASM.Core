@@ -17,11 +17,25 @@ namespace CSASM.Core{
 		public StackException(string message) : base(message){ }
 
 		public StackException(string instruction, object value) : base($"Stack value had an invalid type for the \"{instruction}\" instruction: " +
-			$"{(value is null ? "null reference" : Utility.GetCSASMType(value.GetType()))}"){ }
+			$"{GetTypeFromObject(value)}"){ }
 
 		public StackException(string instruction, object value, object value2) : base($"Stack values had invalid types for the \"{instruction}\" instruction: " +
-			$"{(value is null ? "null reference" : Utility.GetCSASMType(value.GetType()))}," +
-			$"{(value is null ? "null reference" : Utility.GetCSASMType(value2.GetType()))}"){ }
+			$"{GetTypeFromObject(value)}, {GetTypeFromObject(value2)}"){ }
+
+		public StackException(string instruction, object value, object value2, object value3) : base($"Stack values had invalid types for the \"{instruction}\" instruction: " +
+			$"{GetTypeFromObject(value)}, {GetTypeFromObject(value2)}, {GetTypeFromObject(value3)}"){ }
+
+		public StackException(string instruction, object value, object value2, object value3, object value4) : base($"Stack values had invalid types for the \"{instruction}\" instruction: " +
+			$"{GetTypeFromObject(value)}, {GetTypeFromObject(value2)}, {GetTypeFromObject(value3)}, {GetTypeFromObject(value4)}"){ }
+
+		public StackException(string instruction, object value, object value2, object value3, object value4, object value5) : base($"Stack values had invalid types for the \"{instruction}\" instruction: " +
+			$"{GetTypeFromObject(value)}, {GetTypeFromObject(value2)}, {GetTypeFromObject(value3)}, {GetTypeFromObject(value4)}, {GetTypeFromObject(value5)}"){ }
+
+		public StackException(string instruction, object value, object value2, object value3, object value4, object value5, object value6) : base($"Stack values had invalid types for the \"{instruction}\" instruction: " +
+			$"{GetTypeFromObject(value)}, {GetTypeFromObject(value2)}, {GetTypeFromObject(value3)}, {GetTypeFromObject(value4)}, {GetTypeFromObject(value5)}, {GetTypeFromObject(value6)}"){ }
+
+		private static string GetTypeFromObject(object value)
+			=> value is null ? "null reference" : Utility.GetCSASMType(value.GetType());
 	}
 
 	public class ThrowException : Exception{
