@@ -112,6 +112,12 @@ namespace CSASM.Core{
 		int IPrimitiveInteger.BitSize() => 32;
 
 		int IComparable<IntPrimitive>.CompareTo(IntPrimitive other) => value.CompareTo(other.value);
+
+		object IPrimitiveInteger.DivideRemainder(IPrimitive other){
+			if(other is IntPrimitive p)
+				return new IntPrimitive(value - value / p.value);
+			throw new ArithmeticException("divr", this, other);
+		}
 	}
 
 	public struct ShortPrimitive : IPrimitive, IPrimitiveInteger, IComparable<ShortPrimitive>{
@@ -224,6 +230,12 @@ namespace CSASM.Core{
 		int IPrimitiveInteger.BitSize() => 16;
 
 		int IComparable<ShortPrimitive>.CompareTo(ShortPrimitive other) => value.CompareTo(other.value);
+
+		object IPrimitiveInteger.DivideRemainder(IPrimitive other){
+			if(other is ShortPrimitive p)
+				return new ShortPrimitive(value - value / p.value);
+			throw new ArithmeticException("divr", this, other);
+		}
 	}
 
 	public struct SbytePrimitive : IPrimitive, IPrimitiveInteger, IComparable<SbytePrimitive>{
@@ -336,6 +348,12 @@ namespace CSASM.Core{
 		int IPrimitiveInteger.BitSize() => 8;
 
 		int IComparable<SbytePrimitive>.CompareTo(SbytePrimitive other) => value.CompareTo(other.value);
+
+		object IPrimitiveInteger.DivideRemainder(IPrimitive other){
+			if(other is SbytePrimitive p)
+				return new SbytePrimitive(value - value / p.value);
+			throw new ArithmeticException("divr", this, other);
+		}
 	}
 
 	public struct LongPrimitive : IPrimitive, IPrimitiveInteger, IComparable<LongPrimitive>{
@@ -448,5 +466,11 @@ namespace CSASM.Core{
 		int IPrimitiveInteger.BitSize() => 64;
 
 		int IComparable<LongPrimitive>.CompareTo(LongPrimitive other) => value.CompareTo(other.value);
+
+		object IPrimitiveInteger.DivideRemainder(IPrimitive other){
+			if(other is LongPrimitive p)
+				return new LongPrimitive(value - value / p.value);
+			throw new ArithmeticException("divr", this, other);
+		}
 	}
 }

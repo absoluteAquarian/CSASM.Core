@@ -35,6 +35,6 @@ namespace CSASM.Core{
 
 		public void AddYears(int years) => Date = Date.AddYears(years);
 
-		public override string ToString() => $"{Date.Ticks} ticks";
+		public override string ToString() => $"dt: {Date.Ticks} ticks";
 	}
 }

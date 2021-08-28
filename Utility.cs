@@ -34,6 +34,9 @@ namespace CSASM.Core{
 				"ArithmeticSet" => "~set",
 				"Range" => "~range",
 				"CSASMList" => "~list",
+				"DateTimeRef" => "~date",
+				"TimeSpanRef" => "~time",
+				"CSASMRegex" => "~regex",
 				null => throw new ArgumentNullException("type.Name"),
 				_ when type.IsArray => $"~arr:{GetCSASMType(type.GetElementType())}",
 				_ => throw new Exception($"Type \"{type.Name}\" does not correspond to a valid CSASM type")
@@ -58,6 +61,8 @@ namespace CSASM.Core{
 				"~set" => typeof(ArithmeticSet),
 				"~range" => typeof(CSASMRange),
 				"~list" => typeof(CSASMList),
+				"~date" => typeof(DateTimeRef),
+				"~regex" => typeof(CSASMRegex),
 				null => throw new ArgumentNullException(nameof(asmType)),
 				_ when asmType.StartsWith("~arr:") => Array.CreateInstance(GetCsharpType(asmType["~arr:".Length..]), 0).GetType(),
 				_ when asmType.StartsWith("^") && uint.TryParse(asmType[1..], out _) => typeof(CSASMIndexer),
@@ -101,11 +106,13 @@ namespace CSASM.Core{
 			if(obj is char c)
 				ret = c != '\0';
 			else if(obj is IPrimitive ip)
-				ret = !AreEqual(ip, !(ip is IPrimitiveInteger) ? (IPrimitive)new FloatPrimitive(0) : (IPrimitive)new IntPrimitive(0));
+				ret = AreEqual(ip, ip is not IPrimitiveInteger ? new FloatPrimitive(0) : new IntPrimitive(0));
 			else if(obj is bool b)
 				ret = b;
 			else if(obj is ArithmeticSet set)
 				ret = set != ArithmeticSet.EmptySet;
+			else if(obj is CSASMRegex regex)
+				ret = regex.lastMatches?.Count > 0;
 			else{
 				//Strings, arrays, ranges and objects will end up here
 				ret = obj != null;
@@ -121,14 +128,14 @@ namespace CSASM.Core{
 			object obj = ip.Value;
 			object obj2 = ip2.Value;
 
-			if(!(ip is IPrimitiveInteger) && !(ip2 is IPrimitiveInteger)){
+			if(ip is not IPrimitiveInteger && ip2 is not IPrimitiveInteger){
 				double? d = AsFloat(obj);
 				double? d2 = AsFloat(obj2);
 				return d != null && d2 != null && d == d2;
 			}
 
 			//One is a float, but not both
-			if(!(ip is IPrimitiveInteger) ^ !(ip2 is IPrimitiveInteger))
+			if(ip is not IPrimitiveInteger ^ ip2 is not IPrimitiveInteger)
 				throw new StackException("Cannot compare floating-point types to integer types");
 
 			ulong? u = AsUInteger(obj);

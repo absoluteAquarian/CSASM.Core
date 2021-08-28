@@ -14,5 +14,7 @@
 		object GetBit(byte bit);
 
 		int BitSize();
+
+		object DivideRemainder(IPrimitive other);
 	}
 }

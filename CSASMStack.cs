@@ -54,6 +54,23 @@ namespace CSASM.Core{
 			}
 		}
 
+		//Unused for now until I feel like actually implementing it properly
+		public void PushIndirect(object obj, int spOffset){
+			//Shift "sp", push the thing, then shift "sp" back
+			int oldSP = sp;
+			sp += spOffset;
+
+			if(sp > Head)
+				sp = Head;
+			if(sp < 0)
+				throw new StackException($"Stack pointer was in an invalid location ($sp: {sp}, $head: {Head})");
+
+			Push(obj);
+
+			if(spOffset < 0)
+				sp = oldSP + 1;
+		}
+
 		public object Pop(){
 			if(Head <= 0)
 				throw new StackException("Stack underflow detected. Cannot pop more objects from the stack.");
@@ -85,6 +102,25 @@ namespace CSASM.Core{
 
 				Sandbox.verboseWriter.WriteLine($"[STACK] Object popped: {FormatObject(obj)}");
 			}
+
+			return obj;
+		}
+
+		//Unused for now until I feel like actually implementing it properly
+		public object PopIndirect(int spOffset){
+			//Shift "sp", pop the thing, then shift "sp" back
+			int oldSP = sp;
+			sp += spOffset;
+
+			if(sp <= 0)
+				throw new StackException($"Stack pointer was in an invalid location ($sp: {sp}, $head: {Head})");
+			if(sp > Head)
+				sp = Head;
+
+			object obj = Pop();
+
+			if(spOffset < 0)
+				sp = oldSP - 1;
 
 			return obj;
 		}
